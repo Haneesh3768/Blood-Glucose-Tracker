@@ -19,3 +19,4 @@ describe("Application Health & Core Gateway", () => {
     expect(res.body.error).toBe("API endpoint not found.");
   });
 });
+

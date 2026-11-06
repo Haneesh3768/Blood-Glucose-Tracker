@@ -29,3 +29,4 @@ export function authenticate(
     next(new UnauthorizedError("Invalid or expired session token."));
   }
 }
+

@@ -10,3 +10,4 @@ export const reportsRouter = Router();
 reportsRouter.use(authenticate);
 
 reportsRouter.get("/summary", validateQuery(getReportQuerySchema), reportsController.getSummary);
+

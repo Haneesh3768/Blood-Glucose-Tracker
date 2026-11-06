@@ -10,3 +10,4 @@ authRouter.post("/signup", validateBody(signupSchema), authController.signup);
 authRouter.post("/login", validateBody(loginSchema), authController.login);
 authRouter.post("/refresh", validateBody(refreshTokenSchema), authController.refreshToken);
 authRouter.get("/me", authenticate, authController.me);
+

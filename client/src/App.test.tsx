@@ -8,3 +8,4 @@ describe("Client Application Shell", () => {
     expect(screen.getByText(/Sweety Glucose Tracker/i)).toBeInTheDocument();
   });
 });
+

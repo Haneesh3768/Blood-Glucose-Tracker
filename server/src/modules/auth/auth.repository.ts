@@ -75,3 +75,4 @@ export class AuthRepository implements IAuthRepository {
 }
 
 export const authRepository = new AuthRepository();
+

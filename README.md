@@ -211,3 +211,4 @@ Scopes supported:
    - Export reports to PDF/CSV for consultation with healthcare providers.
    - Doctor role to view patient trends upon explicit consent.
    - Push notifications for missing slots before bed.
+

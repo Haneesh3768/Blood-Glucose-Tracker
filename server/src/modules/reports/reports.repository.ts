@@ -68,3 +68,4 @@ export class ReportsRepository implements IReportsRepository {
 }
 
 export const reportsRepository = new ReportsRepository();
+

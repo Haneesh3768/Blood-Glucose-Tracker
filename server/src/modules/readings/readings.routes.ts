@@ -18,3 +18,4 @@ readingsRouter.get("/", validateQuery(getReadingsQuerySchema), readingsControlle
 readingsRouter.get("/:id", readingsController.getById);
 readingsRouter.put("/:id", validateBody(updateReadingSchema), readingsController.update);
 readingsRouter.delete("/:id", readingsController.delete);
+

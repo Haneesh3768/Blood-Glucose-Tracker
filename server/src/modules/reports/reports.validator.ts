@@ -14,3 +14,4 @@ export const getReportQuerySchema = z.object({
 });
 
 export type GetReportQuery = z.infer<typeof getReportQuerySchema>;
+
