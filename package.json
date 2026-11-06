@@ -1,0 +1,33 @@
+{
+  "name": "sweety-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sweety - Blood Glucose Tracker (Modular Monolith)",
+  "workspaces": [
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "dev": "npm run dev:server",
+    "dev:server": "npm run dev --workspace=server",
+    "dev:client": "npm run dev --workspace=client",
+    "build": "npm run build --workspaces",
+    "typecheck": "npm run typecheck --workspaces",
+    "test": "npm run test --workspaces",
+    "prisma:generate": "npm run prisma:generate --workspace=server",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f"
+  },
+  "keywords": [
+    "blood-glucose-tracker",
+    "diabetes",
+    "express",
+    "react",
+    "prisma",
+    "postgresql",
+    "typescript"
+  ],
+  "author": "Palagulla",
+  "license": "MIT"
+}

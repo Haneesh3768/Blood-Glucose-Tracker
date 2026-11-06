@@ -1,0 +1,57 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify:
+    name: Lint, Typecheck & Test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: sweety_test_user
+          POSTGRES_PASSWORD: sweety_test_password
+          POSTGRES_DB: sweety_test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "npm"
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npm run prisma:generate
+        env:
+          DATABASE_URL: postgresql://sweety_test_user:sweety_test_password@localhost:5432/sweety_test_db?schema=public
+
+      - name: Typecheck Workspace
+        run: npm run typecheck
+
+      - name: Run Backend & Frontend Tests
+        run: npm run test
+        env:
+          DATABASE_URL: postgresql://sweety_test_user:sweety_test_password@localhost:5432/sweety_test_db?schema=public
+          JWT_ACCESS_SECRET: test_jwt_access_secret_minimum_32_characters_long
+          JWT_ACCESS_EXPIRES_IN: 15m
+          REFRESH_TOKEN_EXPIRES_DAYS: 7
+          NODE_ENV: test
