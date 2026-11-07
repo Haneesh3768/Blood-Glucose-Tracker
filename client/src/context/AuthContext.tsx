@@ -1,5 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { apiClient } from "../api/client.js";
+import axios from "axios";
+import { apiClient, setSessionExpiredCallback } from "../api/client.js";
+import { getAccessToken, setAccessToken } from "../api/tokenStorage.js";
+import { env } from "../config/env.js";
 import type { User } from "../types/index.js";
 
 interface AuthContextType {
@@ -8,39 +11,61 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (name: string, email: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
+  logoutAll: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(() =>
-    localStorage.getItem("sweety_access_token")
-  );
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    async function loadUser() {
-      if (!token) {
-        setIsLoading(false);
-        return;
-      }
+    // Listen for session expiry from axios interceptor
+    setSessionExpiredCallback(() => {
+      setUser(null);
+    });
 
+    // Silent refresh attempt on application mount
+    async function initAuth() {
       try {
-        const response = await apiClient.get<{ success: boolean; data: { user: User } }>("/auth/me");
-        setUser(response.data.data.user);
+        const response = await axios.post<{
+          success: boolean;
+          data?: {
+            accessToken?: string;
+            tokens?: { accessToken: string };
+            user?: User;
+          };
+        }>(
+          `${env.VITE_API_BASE_URL}/auth/refresh`,
+          {},
+          { withCredentials: true }
+        );
+
+        const payload = response.data.data;
+        const accessToken = payload?.accessToken || payload?.tokens?.accessToken;
+
+        if (accessToken) {
+          setAccessToken(accessToken);
+          // Fetch user profile identity
+          const meRes = await apiClient.get<{ success: boolean; data: { user: User } }>("/auth/me");
+          setUser(meRes.data.data.user);
+        } else {
+          setAccessToken(null);
+          setUser(null);
+        }
       } catch (_error) {
-        localStorage.removeItem("sweety_access_token");
-        setToken(null);
+        // No active refresh session; start clean
+        setAccessToken(null);
         setUser(null);
       } finally {
         setIsLoading(false);
       }
     }
 
-    loadUser();
-  }, [token]);
+    initAuth();
+  }, []);
 
   const login = async (email: string, password: string) => {
     const response = await apiClient.post<{
@@ -48,15 +73,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       data: {
         user: User;
         accessToken?: string;
-        tokens?: { accessToken: string; refreshToken?: string };
+        tokens?: { accessToken: string };
       };
     }>("/auth/login", { email, password });
 
     const payload = response.data.data;
     const accessToken = payload.accessToken || payload.tokens?.accessToken;
     if (accessToken) {
-      localStorage.setItem("sweety_access_token", accessToken);
-      setToken(accessToken);
+      setAccessToken(accessToken);
     }
     setUser(payload.user);
   };
@@ -67,15 +91,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       data: {
         user: User;
         accessToken?: string;
-        tokens?: { accessToken: string; refreshToken?: string };
+        tokens?: { accessToken: string };
       };
     }>("/auth/register", { name, email, password });
 
     const payload = response.data.data;
     const accessToken = payload.accessToken || payload.tokens?.accessToken;
     if (accessToken) {
-      localStorage.setItem("sweety_access_token", accessToken);
-      setToken(accessToken);
+      setAccessToken(accessToken);
     }
     setUser(payload.user);
   };
@@ -84,15 +107,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await apiClient.post("/auth/logout");
     } catch (_e) {
-      // Ignore network errors on logout
+      // Ignore network errors during logout
+    } finally {
+      setAccessToken(null);
+      setUser(null);
     }
-    localStorage.removeItem("sweety_access_token");
-    setToken(null);
-    setUser(null);
+  };
+
+  const logoutAll = async () => {
+    try {
+      await apiClient.post("/auth/logout-all");
+    } catch (_e) {
+      // Ignore errors
+    } finally {
+      setAccessToken(null);
+      setUser(null);
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, signup, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        token: getAccessToken(),
+        isLoading,
+        login,
+        signup,
+        logout,
+        logoutAll,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

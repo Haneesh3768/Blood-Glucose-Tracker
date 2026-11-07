@@ -82,6 +82,7 @@ export const ReadingModal: React.FC<ReadingModalProps> = ({
       const payload = {
         readingDate,
         timeSlot,
+        glucoseValue: Number(value),
         value: Number(value),
       };
 
@@ -148,7 +149,7 @@ export const ReadingModal: React.FC<ReadingModalProps> = ({
               max={today}
               value={readingDate}
               onChange={(e) => setReadingDate(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 text-sm transition"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-lavender-500/20 focus:border-lavender-600 text-sm transition"
             />
             <p className="text-[11px] text-slate-400 mt-1">
               Readings cannot be logged for future dates.
@@ -163,7 +164,7 @@ export const ReadingModal: React.FC<ReadingModalProps> = ({
             <select
               value={timeSlot}
               onChange={(e) => setTimeSlot(e.target.value as TimeSlot)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 text-sm transition bg-white"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-lavender-500/20 focus:border-lavender-600 text-sm transition bg-white"
             >
               {TIME_SLOTS.map((slot) => (
                 <option key={slot} value={slot}>
@@ -190,7 +191,7 @@ export const ReadingModal: React.FC<ReadingModalProps> = ({
                 placeholder="e.g. 110"
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 text-base font-semibold transition"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-lavender-500/20 focus:border-lavender-600 text-base font-semibold transition"
               />
               <span className="absolute right-3.5 top-3 text-xs font-medium text-slate-400">
                 mg/dl
@@ -213,7 +214,7 @@ export const ReadingModal: React.FC<ReadingModalProps> = ({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm shadow-sm transition disabled:opacity-50"
+              className="px-5 py-2.5 rounded-xl bg-lavender-600 hover:bg-lavender-700 text-white font-semibold text-sm shadow-sm transition disabled:opacity-50"
             >
               {isSubmitting
                 ? "Saving..."

@@ -15,19 +15,21 @@ export interface Reading {
   userId: string;
   readingDate: string; // YYYY-MM-DD
   timeSlot: TimeSlot;
-  value: number; // mg/dl
+  glucoseValue: number; // mg/dl
+  value: number; // backward-compatibility alias
   createdAt: string;
   updatedAt: string;
 }
 
 export interface AggregateStats {
   count: number;
+  totalReadings?: number;
   highest: number | null;
   lowest: number | null;
   average: number | null;
 }
 
-export type ReportType = "daily" | "mtd" | "monthly";
+export type ReportType = "daily" | "month-to-date" | "monthly" | "mtd";
 
 export interface ReportResult {
   reportType: ReportType;
@@ -43,6 +45,7 @@ export interface ReportResult {
 
 export interface ApiSuccessResponse<T> {
   success: true;
+  message?: string;
   data: T;
   meta?: {
     page?: number;
@@ -59,4 +62,3 @@ export interface ApiErrorResponse {
 }
 
 export type ApiResponse<T> = ApiSuccessResponse<T> | ApiErrorResponse;
-

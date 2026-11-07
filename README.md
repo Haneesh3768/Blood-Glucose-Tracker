@@ -168,6 +168,49 @@ npm run test --workspace=client
 
 ---
 
+## 💻 Frontend Application & User Interface (Phase 4)
+
+The client application is built with React 18, Vite, TypeScript, and Tailwind CSS using a calm healthcare design language: pure white surfaces, crisp typography, and subtle lavender accents (`#7c3aed` / `#6d28d9` / `#f5f3ff`).
+
+### 📱 Implemented Pages & Workflows
+
+1. **Patient Registration (`/register`)**:
+   - Patient name, normalized email, and password validation with Zod.
+   - Immediate feedback on duplicate emails and security requirements.
+2. **Patient Login (`/login`)**:
+   - Secure sign-in issuing an in-memory access token and setting the HTTP-only refresh cookie.
+   - Generic authentication error messages to prevent account enumeration.
+3. **Clinical Dashboard (`/dashboard`)**:
+   - **Date Navigator**: Day switcher with `Previous Day`, `Next Day`, and `Today` quick jumps.
+   - **Daily Glycemic Summary Cards**: Highest, lowest, and average glucose levels, alongside total readings for the selected date.
+   - **Daily Slot Timeline**: Grouped cards for each time slot (`Morning (fasting)`, `After breakfast`, `After lunch`, `After dinner`) with status badges (Normal: 70–140 mg/dl, Elevated: 141–180 mg/dl, High: >180 mg/dl).
+   - **30-Day Trend Chart**: Responsive Recharts area visualization tracking daily averages against the ADA target zone (70–140 mg/dl).
+   - **Quick Actions**: Add Reading modal trigger and navigation to reports.
+4. **Add Reading (`/readings/new`)**:
+   - Standalone page and modal drawer powered by React Hook Form + Zod.
+   - Strict adherence to the 5 Kenpath business validation rules with real-time UI error messages.
+5. **Edit Reading (`/readings/:id/edit`)**:
+   - Pre-filled modal and page to adjust time slot or glucose level.
+   - Optimistic TanStack Query invalidation to reflect changes immediately.
+6. **Daily Report (`/reports/daily`)**:
+   - Calendar date picker, daily statistics, and detailed slot breakdown.
+   - Clean empty state with a direct CTA when no readings exist for the date.
+7. **Monthly Analytics Reports (`/reports/monthly`)**:
+   - Dual-mode view: **Month-to-Date** (1st of month to selected date) and **Whole Previous Month**.
+   - Metric aggregates calculated strictly at the record level (no averaging of daily averages).
+   - Glycemic trend charts displaying progression across the monthly window.
+8. **Patient Profile (`/profile`)**:
+   - Account details, clinical target guide (ADA recommendations), and session control.
+   - **Session Termination**: "Sign Out Current Device" (revokes current session) and "Sign Out All Devices" (revokes entire session family).
+
+### 🔒 In-Memory Authentication & Single-Flight Axios Interceptor
+
+- **Zero LocalStorage Token Storage**: Access tokens are kept strictly in JavaScript closure memory (`tokenStorage.ts`), eliminating XSS exposure.
+- **Single-Flight Concurrency Queue**: When access tokens expire, concurrent HTTP requests are queued behind a single `/refresh` call, preventing multi-request token race conditions and accidental family revoking.
+- **Silent Rehydration on Mount**: On initial page load or browser refresh, the app issues a silent refresh request to re-acquire an access token using the HTTP-only cookie.
+
+---
+
 ## 📖 API Reference & Interactive Documentation
 
 Sweety provides interactive Swagger UI documentation directly on the running backend:

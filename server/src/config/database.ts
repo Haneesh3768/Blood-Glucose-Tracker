@@ -7,9 +7,9 @@ const { Pool } = pg;
 
 export const pool = new Pool({
   connectionString: env.DATABASE_URL,
-  max: 20,
+  max: env.NODE_ENV === "test" ? 30 : 20,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
+  connectionTimeoutMillis: env.NODE_ENV === "test" ? 15000 : 5000,
 });
 
 const adapter = new PrismaPg(pool);

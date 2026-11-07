@@ -43,10 +43,12 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
       case "daily":
         return `Selected Date: ${formatDisplayDate(selectedDate)}`;
       case "mtd":
+      case "month-to-date":
         return report?.dateRange
           ? `Month-to-Date: ${formatDisplayDate(report.dateRange.startDate)} – ${formatDisplayDate(report.dateRange.endDate)}`
           : "Month-to-Date Range";
       case "monthly":
+      default:
         return report?.dateRange
           ? `Full Previous Month: ${formatDisplayDate(report.dateRange.startDate)} – ${formatDisplayDate(report.dateRange.endDate)}`
           : "Previous Month Range";

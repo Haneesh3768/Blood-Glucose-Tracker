@@ -4,8 +4,9 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "node",
-    testTimeout: 15000,
-    hookTimeout: 15000,
+    fileParallelism: false,
+    testTimeout: 20000,
+    hookTimeout: 20000,
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html"],
