@@ -13,4 +13,24 @@ describe("Client Application Shell", () => {
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Sign In/i })).toBeInTheDocument();
   });
+
+  it("directly redirects to dashboard when session is available at root /", async () => {
+    vi.spyOn(axios, "post").mockResolvedValue({
+      data: {
+        success: true,
+        data: {
+          accessToken: "active_jwt_token",
+          user: {
+            id: "user-123",
+            name: "Jane Doe",
+            email: "jane@sweety.app",
+          },
+        },
+      },
+    });
+
+    render(<App />);
+
+    expect(await screen.findByText(/Patient Overview/i)).toBeInTheDocument();
+  });
 });

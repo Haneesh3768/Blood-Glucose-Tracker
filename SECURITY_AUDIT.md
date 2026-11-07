@@ -191,3 +191,4 @@ A comprehensive quality assurance (QA) and application security (AppSec) audit o
    - `express-rate-limit` currently uses an in-memory store. In a multi-instance cluster, back the rate limiter with a shared Redis store so rate limiting counters are coordinated across instances.
 4. **No Automated Security Certification Claimed**:
    - This audit confirms compliance with OWASP Top 10 defensibility standards and assignment requirements. Formal compliance certifications (e.g. HIPAA, SOC 2 Type II) require third-party independent penetration testing and compliance auditing.
+

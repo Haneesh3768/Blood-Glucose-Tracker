@@ -20,12 +20,18 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const initializingRef = React.useRef(false);
 
   useEffect(() => {
     // Listen for session expiry from axios interceptor
     setSessionExpiredCallback(() => {
       setUser(null);
     });
+
+    if (initializingRef.current) {
+      return;
+    }
+    initializingRef.current = true;
 
     // Silent refresh attempt on application mount
     async function initAuth() {
