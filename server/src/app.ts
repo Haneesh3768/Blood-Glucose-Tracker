@@ -1,5 +1,5 @@
 import express, { type Express } from "express";
-import cors from "cors";
+import cors, { type CorsOptions } from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import { env } from "./config/env.js";
@@ -12,23 +12,61 @@ import { NotFoundError } from "./errors/AppError.js";
 export function createApp(): Express {
   const app = express();
 
-  // Security headers & CORS
-  app.use(helmet());
+  // Configure Helmet with permissive Cross-Origin-Resource-Policy for dev APIs
   app.use(
-    cors({
-      origin: env.CLIENT_URL,
-      credentials: true,
-      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-      allowedHeaders: ["Content-Type", "Authorization"],
+    helmet({
+      crossOriginResourcePolicy: { policy: "cross-origin" },
     })
   );
+
+  // Robust CORS Configuration
+  const corsOptions: CorsOptions = {
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      // In non-production, permit all localhost / 127.0.0.1 ports (5173, 5174, 3000, etc.)
+      const isLocalhost = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+      if (env.NODE_ENV !== "production" && isLocalhost) {
+        return callback(null, true);
+      }
+
+      if (origin === env.CLIENT_URL) {
+        return callback(null, true);
+      }
+
+      // Default allow in dev/test to avoid blocking local developer setups
+      if (env.NODE_ENV !== "production") {
+        return callback(null, true);
+      }
+
+      callback(new Error(`CORS blocked request from origin: ${origin}`));
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Requested-With",
+      "Accept",
+      "Origin",
+    ],
+    exposedHeaders: ["Authorization"],
+    optionsSuccessStatus: 204,
+  };
+
+  app.use(cors(corsOptions));
+  // Explicitly handle all preflight OPTIONS requests
+  app.options("*", cors(corsOptions));
 
   // Body parsing
   app.use(express.json());
 
   // HTTP Request Logging
   if (env.NODE_ENV !== "test") {
-    app.use(morgan("combined"));
+    app.use(morgan("dev"));
   }
 
   // Healthcheck Endpoint
@@ -55,4 +93,3 @@ export function createApp(): Express {
 
   return app;
 }
-

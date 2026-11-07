@@ -12,3 +12,4 @@ export async function fetchReport(type: ReportType, date?: string) {
   });
   return response.data.data.report;
 }
+

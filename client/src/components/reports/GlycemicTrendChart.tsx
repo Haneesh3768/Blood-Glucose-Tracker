@@ -111,3 +111,4 @@ export const GlycemicTrendChart: React.FC<GlycemicTrendChartProps> = ({ readings
     </div>
   );
 };
+

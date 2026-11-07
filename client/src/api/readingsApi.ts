@@ -51,3 +51,4 @@ export async function deleteReading(id: string) {
   >(`/readings/${id}`);
   return response.data.data;
 }
+

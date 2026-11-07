@@ -47,3 +47,4 @@ export const EmptyReportState: React.FC<EmptyReportStateProps> = ({
     </div>
   );
 };
+

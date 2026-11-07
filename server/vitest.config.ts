@@ -11,11 +11,12 @@ export default defineConfig({
     env: {
       NODE_ENV: "test",
       PORT: "5001",
-      DATABASE_URL: "postgresql://test:test@localhost:5432/sweety_test?schema=public",
+      DATABASE_URL:
+        process.env.DATABASE_URL ||
+        "postgresql://sweety_admin:sweety_secure_dev_password@localhost:5432/sweety_db?schema=public",
       JWT_ACCESS_SECRET: "test_secret_for_jwt_which_must_be_at_least_32_characters_long",
       JWT_ACCESS_EXPIRES_IN: "15m",
       REFRESH_TOKEN_EXPIRES_DAYS: "7",
     },
   },
 });
-
