@@ -33,10 +33,10 @@ Sweety is architected as a **Modular Monolith** with strict multi-tenancy, deter
 | Layer | Technologies |
 |---|---|
 | **Frontend** | React 18, TypeScript, Vite, Tailwind CSS, React Router, TanStack Query, React Hook Form, Zod, Axios, Recharts, Lucide React |
-| **Backend** | Node.js (v22), Express, TypeScript, Prisma ORM 7 (`@prisma/adapter-pg`), PostgreSQL (`pg` connection pool) |
-| **Security & Auth** | `bcryptjs` (salted password hashing), Stateless JWT access tokens (15m), Opaque refresh tokens with SHA-256 hashing, token rotation and session-family revocation |
+| **Backend** | Node.js (v22), Express, TypeScript, Prisma ORM 7 (`@prisma/adapter-pg`), PostgreSQL (`pg` connection pool), Pino logger with PII redaction |
+| **Security & Auth** | `bcryptjs` (cost 12), Stateless JWT access tokens (15m, issuer & audience verified), Opaque refresh tokens stored strictly as SHA-256 hashes, HTTP-only SameSite=Strict cookies, atomic token rotation in transactions, session-family reuse revocation, rate limiting (`express-rate-limit`), CSRF origin defense |
 | **Testing** | Vitest, Supertest, React Testing Library, jsdom |
-| **Infrastructure** | Docker Compose, PostgreSQL 16 Alpine, GitHub Actions CI Pipeline |
+| **Infrastructure** | Docker Compose, PostgreSQL 16 Alpine, Multi-stage Dockerfiles, GitHub Actions CI Pipeline |
 
 ---
 
@@ -205,10 +205,15 @@ Scopes supported:
 2. **Security & Refresh Token Family Revocation**:
    - Refresh tokens are stored strictly as SHA-256 hashes.
    - If an expired or already-revoked refresh token is exchanged, the server invalidates all active tokens in that `familyId` to prevent token replay attacks.
-3. **Multi-Tenancy Isolation**:
+   - Atomic conditional transactions prevent race conditions during concurrent renewal requests, while transient PostgreSQL serialization conflicts (`P2034` / `40001`) are retried with bounded exponential backoff.
+3. **Account Enumeration Defense**:
+   - Authentication errors return generic messages (`"Invalid email or password."`) whether the email does not exist or the password is incorrect.
+4. **Data Privacy & Structured Logging**:
+   - Pino is configured with field-level redaction for credentials (`password`, `passwordHash`, `refreshToken`, `tokenHash`) and sensitive clinical entries (`glucoseValue`, `value`).
+5. **Multi-Tenancy Isolation**:
    - Every reading query enforces `WHERE user_id = $userId`. Users cannot inspect, modify, or delete another patient's readings.
-4. **Future Enhancements**:
-   - Export reports to PDF/CSV for consultation with healthcare providers.
-   - Doctor role to view patient trends upon explicit consent.
-   - Push notifications for missing slots before bed.
+6. **Future Enhancements**:
+   - Export reports to clinical PDF/CSV for consultation with healthcare providers.
+   - Doctor role to view patient trends upon explicit patient authorization.
+   - Push reminders for missing daily slots before bedtime.
 
