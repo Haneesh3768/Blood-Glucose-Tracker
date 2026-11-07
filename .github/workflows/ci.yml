@@ -8,7 +8,7 @@ on:
 
 jobs:
   verify:
-    name: Lint, Typecheck & Test
+    name: Build, Typecheck & Automated Test Suite
     runs-on: ubuntu-latest
 
     services:
@@ -27,28 +27,36 @@ jobs:
           --health-retries 5
 
     steps:
-      - name: Checkout Code
+      - name: Checkout Codebase
         uses: actions/checkout@v4
 
-      - name: Setup Node.js 22
+      - name: Setup Node.js 22 Runtime
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: "npm"
 
-      - name: Install Dependencies
+      - name: Install Monorepo Dependencies
         run: npm ci
 
-      - name: Generate Prisma Client
+      - name: Generate Prisma 7 Client
         run: npm run prisma:generate
         env:
           DATABASE_URL: postgresql://sweety_test_user:sweety_test_password@localhost:5432/sweety_test_db?schema=public
 
-      - name: Typecheck Workspace
+      - name: Deploy Prisma Database Migrations
+        run: npx prisma migrate deploy --workspace=server
+        env:
+          DATABASE_URL: postgresql://sweety_test_user:sweety_test_password@localhost:5432/sweety_test_db?schema=public
+
+      - name: Static Typecheck Across Workspaces
         run: npm run typecheck
 
-      - name: Run Backend & Frontend Tests
-        run: npm run test
+      - name: Compile Production Builds (tsc & vite)
+        run: npm run build
+
+      - name: Run Backend Integration & Security Test Suite
+        run: npm run test --workspace=server
         env:
           DATABASE_URL: postgresql://sweety_test_user:sweety_test_password@localhost:5432/sweety_test_db?schema=public
           JWT_ACCESS_SECRET: test_jwt_access_secret_minimum_32_characters_long
@@ -56,3 +64,5 @@ jobs:
           REFRESH_TOKEN_EXPIRES_DAYS: 7
           NODE_ENV: test
 
+      - name: Run Frontend Component & Auth Interceptor Test Suite
+        run: npm run test --workspace=client

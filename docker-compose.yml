@@ -1,10 +1,20 @@
 version: "3.8"
 
+networks:
+  sweety_network:
+    driver: bridge
+
+volumes:
+  sweety_pgdata:
+    driver: local
+
 services:
   postgres:
     image: postgres:16-alpine
     container_name: sweety_postgres
     restart: unless-stopped
+    networks:
+      - sweety_network
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-sweety_admin}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sweety_secure_dev_password}
@@ -26,19 +36,31 @@ services:
       dockerfile: server/Dockerfile
     container_name: sweety_server
     restart: unless-stopped
+    networks:
+      - sweety_network
     environment:
       NODE_ENV: production
       PORT: 5000
       CLIENT_URL: ${CLIENT_URL:-http://localhost:5173}
       DATABASE_URL: postgresql://${POSTGRES_USER:-sweety_admin}:${POSTGRES_PASSWORD:-sweety_secure_dev_password}@postgres:5432/${POSTGRES_DB:-sweety_db}?schema=public
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-dev_jwt_access_secret_do_not_use_in_production_32chars}
-      JWT_ACCESS_EXPIRES_IN: 15m
-      REFRESH_TOKEN_EXPIRES_DAYS: 7
+      JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN:-15m}
+      JWT_ISSUER: ${JWT_ISSUER:-sweety-api}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-sweety-client}
+      REFRESH_TOKEN_EXPIRES_DAYS: ${REFRESH_TOKEN_EXPIRES_DAYS:-7}
+      REFRESH_COOKIE_NAME: ${REFRESH_COOKIE_NAME:-sweety_refresh_token}
+      SEED_ON_STARTUP: ${SEED_ON_STARTUP:-true}
     ports:
-      - "5000:5000"
+      - "${PORT:-5000}:5000"
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:5000/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
 
   client:
     build:
@@ -46,11 +68,16 @@ services:
       dockerfile: client/Dockerfile
     container_name: sweety_client
     restart: unless-stopped
+    networks:
+      - sweety_network
     ports:
-      - "5173:80"
+      - "${CLIENT_PORT:-5173}:80"
     depends_on:
-      - server
-
-volumes:
-  sweety_pgdata:
-    driver: local
+      server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:80/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
