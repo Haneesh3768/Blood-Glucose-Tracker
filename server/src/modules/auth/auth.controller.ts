@@ -8,7 +8,22 @@ import { UnauthorizedError } from "../../errors/AppError.js";
 export class AuthController {
   constructor(private readonly service: AuthService = authService) {}
 
+  /**
+   * Releases before 8303802 scoped the refresh cookie to this path. Browsers
+   * retain it alongside the current Path=/ cookie and send the more-specific,
+   * stale value first on /refresh. Keep clearing it while local users migrate.
+   */
+  private clearLegacyRefreshCookie(res: Response): void {
+    res.clearCookie(env.REFRESH_COOKIE_NAME, {
+      httpOnly: true,
+      secure: env.NODE_ENV === "production",
+      sameSite: "strict",
+      path: "/api/v1/auth",
+    });
+  }
+
   private setRefreshCookie(res: Response, rawRefreshToken: string): void {
+    this.clearLegacyRefreshCookie(res);
     res.cookie(env.REFRESH_COOKIE_NAME, rawRefreshToken, {
       httpOnly: true,
       secure: env.NODE_ENV === "production",
@@ -19,6 +34,7 @@ export class AuthController {
   }
 
   private clearRefreshCookie(res: Response): void {
+    this.clearLegacyRefreshCookie(res);
     res.clearCookie(env.REFRESH_COOKIE_NAME, {
       httpOnly: true,
       secure: env.NODE_ENV === "production",
@@ -116,6 +132,10 @@ export class AuthController {
 
       res.status(200).json(response);
     } catch (error) {
+      // A stale cookie from the pre-Path=/ release can mask a valid current
+      // cookie. Remove only the legacy path here; never clear the current
+      // cookie on an error because a parallel valid rotation may have set it.
+      this.clearLegacyRefreshCookie(res);
       next(error);
     }
   };

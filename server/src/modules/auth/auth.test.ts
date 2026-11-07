@@ -19,6 +19,8 @@ describe("Phase 1: Authentication & PostgreSQL Database Integration", () => {
   let primaryRefreshTokenCookie: string;
   let primaryRawRefreshToken: string;
   let userId: string;
+  const isCurrentRefreshCookie = (value: string): boolean =>
+    value.startsWith(`${env.REFRESH_COOKIE_NAME}=`) && value.includes("Path=/;");
 
   // 1. Registration
   it("registers a new user with normalized email, returns 201 and sets HTTP-only cookie", async () => {
@@ -43,11 +45,16 @@ describe("Phase 1: Authentication & PostgreSQL Database Integration", () => {
     // Check HTTP-only cookie
     const cookies = res.headers["set-cookie"];
     expect(cookies).toBeDefined();
-    primaryRefreshTokenCookie = (cookies as unknown as string[]).find((c) =>
-      c.startsWith(`${env.REFRESH_COOKIE_NAME}=`)
-    )!;
+    const cookieValues = cookies as unknown as string[];
+    expect(cookieValues).toContainEqual(
+      expect.stringMatching(new RegExp(`${env.REFRESH_COOKIE_NAME}=;.*Path=/api/v1/auth`))
+    );
+    primaryRefreshTokenCookie = cookieValues.find(isCurrentRefreshCookie)!;
     expect(primaryRefreshTokenCookie).toBeDefined();
     expect(primaryRefreshTokenCookie).toContain("HttpOnly");
+    expect(primaryRefreshTokenCookie).toContain("Path=/");
+    expect(primaryRefreshTokenCookie).toMatch(/SameSite=Lax/i);
+    expect(primaryRefreshTokenCookie).not.toMatch(/; Secure/i);
 
     // Extract raw token value
     const match = primaryRefreshTokenCookie.match(
@@ -112,9 +119,7 @@ describe("Phase 1: Authentication & PostgreSQL Database Integration", () => {
 
     const cookies = res.headers["set-cookie"];
     expect(cookies).toBeDefined();
-    const cookie = (cookies as unknown as string[]).find((c) =>
-      c.startsWith(`${env.REFRESH_COOKIE_NAME}=`)
-    );
+    const cookie = (cookies as unknown as string[]).find(isCurrentRefreshCookie);
     expect(cookie).toContain("HttpOnly");
   });
 
@@ -183,9 +188,7 @@ describe("Phase 1: Authentication & PostgreSQL Database Integration", () => {
     // New cookie issued
     const newCookies = res.headers["set-cookie"] as unknown as string[];
     expect(newCookies).toBeDefined();
-    const rotatedCookie = newCookies.find((c) =>
-      c.startsWith(`${env.REFRESH_COOKIE_NAME}=`)
-    )!;
+    const rotatedCookie = newCookies.find(isCurrentRefreshCookie)!;
     expect(rotatedCookie).toBeDefined();
     expect(rotatedCookie).not.toBe(primaryRefreshTokenCookie);
 
@@ -211,6 +214,9 @@ describe("Phase 1: Authentication & PostgreSQL Database Integration", () => {
     expect(res.status).toBe(401);
     expect(res.body.success).toBe(false);
     expect(res.body.error).toContain("Invalid session state detected");
+    expect(res.headers["set-cookie"] as unknown as string[]).toContainEqual(
+      expect.stringMatching(new RegExp(`${env.REFRESH_COOKIE_NAME}=;.*Path=/api/v1/auth`))
+    );
 
     // Verify all tokens in that family were revoked
     const crypto = await import("crypto");
@@ -239,8 +245,8 @@ describe("Phase 1: Authentication & PostgreSQL Database Integration", () => {
         password: testUser.password,
       });
 
-    const activeCookie = (loginRes.headers["set-cookie"] as unknown as string[]).find((c) =>
-      c.startsWith(`${env.REFRESH_COOKIE_NAME}=`)
+    const activeCookie = (loginRes.headers["set-cookie"] as unknown as string[]).find(
+      isCurrentRefreshCookie
     )!;
 
     // Fire 2 simultaneous refresh requests with the exact same token
@@ -264,8 +270,8 @@ describe("Phase 1: Authentication & PostgreSQL Database Integration", () => {
         password: testUser.password,
       });
 
-    const cookie = (loginRes.headers["set-cookie"] as unknown as string[]).find((c) =>
-      c.startsWith(`${env.REFRESH_COOKIE_NAME}=`)
+    const cookie = (loginRes.headers["set-cookie"] as unknown as string[]).find(
+      isCurrentRefreshCookie
     )!;
     const match = cookie.match(new RegExp(`${env.REFRESH_COOKIE_NAME}=([^;]+)`));
     const rawToken = match![1]!;

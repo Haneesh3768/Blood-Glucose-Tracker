@@ -51,6 +51,7 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
             onClick={onConfirm}
             disabled={isDeleting}
             className="flex-1 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-sm shadow-sm transition disabled:opacity-50"
+            style={{ backgroundColor: "#e11d48", color: "#ffffff" }}
           >
             {isDeleting ? "Deleting..." : "Delete"}
           </button>

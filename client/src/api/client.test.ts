@@ -112,12 +112,67 @@ describe("Frontend Client Security & Token Interceptors Audit", () => {
       adapterSpy.mockRestore();
     });
 
+    it("shares single refresh promise across concurrent refreshTokenSingleFlight callers", async () => {
+      const refreshSpy = vi.spyOn(axios, "post").mockImplementation(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        return {
+          data: {
+            success: true,
+            data: {
+              accessToken: "single_flight_jwt",
+              user: { id: "u-1", name: "User", email: "u@sweety.app" },
+            },
+          },
+        };
+      });
+
+      const { refreshTokenSingleFlight } = await import("./client.js");
+      const [res1, res2, res3] = await Promise.all([
+        refreshTokenSingleFlight(),
+        refreshTokenSingleFlight(),
+        refreshTokenSingleFlight(),
+      ]);
+
+      expect(refreshSpy).toHaveBeenCalledTimes(1);
+      expect(refreshSpy).toHaveBeenCalledWith(
+        "/api/v1/auth/refresh",
+        {},
+        { withCredentials: true }
+      );
+      expect(res1.accessToken).toBe("single_flight_jwt");
+      expect(res2.accessToken).toBe("single_flight_jwt");
+      expect(res3.accessToken).toBe("single_flight_jwt");
+    });
+
+    it("retries once after a 401 so a migrated refresh cookie can be used", async () => {
+      const migration401 = Object.assign(new Error("Unauthorized"), {
+        isAxiosError: true,
+        response: { status: 401 },
+      });
+      const refreshSpy = vi
+        .spyOn(axios, "post")
+        .mockRejectedValueOnce(migration401)
+        .mockResolvedValueOnce({
+          data: {
+            success: true,
+            data: { accessToken: "migrated_cookie_access_token" },
+          },
+        });
+
+      const { refreshTokenSingleFlight } = await import("./client.js");
+      const result = await refreshTokenSingleFlight();
+
+      expect(refreshSpy).toHaveBeenCalledTimes(2);
+      expect(result.accessToken).toBe("migrated_cookie_access_token");
+      expect(getAccessToken()).toBe("migrated_cookie_access_token");
+    });
+
     it("rejects all queued requests and invokes session expiry callback when refresh fails", async () => {
       const expiredCallback = vi.fn();
       setSessionExpiredCallback(expiredCallback);
 
       // Refresh endpoint fails with 401 (e.g. refresh cookie expired)
-      vi.spyOn(axios, "post").mockRejectedValueOnce({
+      vi.spyOn(axios, "post").mockRejectedValue({
         response: { status: 401, data: { error: "Invalid refresh token" } },
       });
 

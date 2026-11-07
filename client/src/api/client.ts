@@ -1,6 +1,7 @@
 import axios, { type InternalAxiosRequestConfig } from "axios";
 import { env } from "../config/env.js";
 import { getAccessToken, setAccessToken } from "./tokenStorage.js";
+import type { User } from "../types/index.js";
 
 export const apiClient = axios.create({
   baseURL: env.VITE_API_BASE_URL,
@@ -43,6 +44,68 @@ export function setSessionExpiredCallback(cb: () => void): void {
   onSessionExpiredCallback = cb;
 }
 
+// Unified single-flight refresh promise shared across the entire application
+type RefreshResult = { accessToken: string; user?: User };
+
+let activeRefreshPromise: Promise<RefreshResult> | null = null;
+
+export async function refreshTokenSingleFlight(): Promise<RefreshResult> {
+  if (activeRefreshPromise) {
+    return activeRefreshPromise;
+  }
+
+  isRefreshing = true;
+  activeRefreshPromise = (async () => {
+    try {
+      const refresh = () =>
+        axios.post<{
+          success: boolean;
+          data?: {
+            accessToken?: string;
+            tokens?: { accessToken: string };
+            user?: User;
+          };
+        }>(`${env.VITE_API_BASE_URL}/auth/refresh`, {}, { withCredentials: true });
+
+      let response;
+      try {
+        response = await refresh();
+      } catch (error: unknown) {
+        // The failed response clears the retired /api/v1/auth cookie. Retry
+        // once so a valid Path=/ cookie can restore the session immediately.
+        if (axios.isAxiosError(error) && error.response?.status === 401) {
+          response = await refresh();
+        } else {
+          throw error;
+        }
+      }
+
+      const payload = response.data.data;
+      const newAccessToken = payload?.accessToken || payload?.tokens?.accessToken;
+
+      if (!newAccessToken) {
+        throw new Error("No access token received from refresh");
+      }
+
+      setAccessToken(newAccessToken);
+      processQueue(null, newAccessToken);
+      return { accessToken: newAccessToken, user: payload?.user };
+    } catch (refreshError) {
+      processQueue(refreshError, null);
+      setAccessToken(null);
+      if (onSessionExpiredCallback) {
+        onSessionExpiredCallback();
+      }
+      throw refreshError;
+    } finally {
+      isRefreshing = false;
+      activeRefreshPromise = null;
+    }
+  })();
+
+  return activeRefreshPromise;
+}
+
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -60,7 +123,7 @@ apiClient.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    if (isRefreshing) {
+    if (isRefreshing || activeRefreshPromise) {
       // Another request is already refreshing the token; queue this request
       return new Promise<string>((resolve, reject) => {
         failedQueue.push({ resolve, reject });
@@ -75,45 +138,15 @@ apiClient.interceptors.response.use(
     }
 
     originalRequest._retry = true;
-    isRefreshing = true;
 
     try {
-      const response = await axios.post<{
-        success: boolean;
-        data?: {
-          accessToken?: string;
-          tokens?: { accessToken: string };
-        };
-      }>(
-        `${env.VITE_API_BASE_URL}/auth/refresh`,
-        {},
-        { withCredentials: true }
-      );
-
-      const payload = response.data.data;
-      const newAccessToken = payload?.accessToken || payload?.tokens?.accessToken;
-
-      if (!newAccessToken) {
-        throw new Error("No access token received from refresh");
-      }
-
-      setAccessToken(newAccessToken);
-      processQueue(null, newAccessToken);
-
+      const { accessToken } = await refreshTokenSingleFlight();
       if (originalRequest.headers) {
-        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
       }
-
       return apiClient(originalRequest);
     } catch (refreshError) {
-      processQueue(refreshError, null);
-      setAccessToken(null);
-      if (onSessionExpiredCallback) {
-        onSessionExpiredCallback();
-      }
       return Promise.reject(refreshError);
-    } finally {
-      isRefreshing = false;
     }
   }
 );

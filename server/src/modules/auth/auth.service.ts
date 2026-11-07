@@ -197,11 +197,11 @@ export class AuthService {
       });
     });
 
-    // If update count was 0, token was concurrently modified / revoked
+    // If update count was 0, token was concurrently modified / rotated by a race
     if (!rotationResult.rotated) {
-      // Re-fetch to distinguish between concurrent rotation vs true reuse
+      // Re-fetch to distinguish between concurrent rotation vs explicit revocation
       const rechecked = await this.repository.findRefreshTokenByHash(tokenHash);
-      if (rechecked && rechecked.revokedAt !== null) {
+      if (rechecked && rechecked.revokedAt !== null && !rechecked.replacedBy) {
         await this.repository.revokeFamily(storedToken.familyId);
       }
       throw new UnauthorizedError("Session renewal collision or token already consumed.");

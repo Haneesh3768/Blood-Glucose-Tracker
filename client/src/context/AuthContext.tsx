@@ -1,8 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import axios from "axios";
-import { apiClient, setSessionExpiredCallback } from "../api/client.js";
+import { apiClient, refreshTokenSingleFlight, setSessionExpiredCallback } from "../api/client.js";
 import { getAccessToken, setAccessToken } from "../api/tokenStorage.js";
-import { env } from "../config/env.js";
 import type { User } from "../types/index.js";
 
 interface AuthContextType {
@@ -36,25 +34,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Silent refresh attempt on application mount
     async function initAuth() {
       try {
-        const response = await axios.post<{
-          success: boolean;
-          data?: {
-            accessToken?: string;
-            tokens?: { accessToken: string };
-            user?: User;
-          };
-        }>(
-          `${env.VITE_API_BASE_URL}/auth/refresh`,
-          {},
-          { withCredentials: true }
-        );
-
-        const payload = response.data.data;
-        const accessToken = payload?.accessToken || payload?.tokens?.accessToken;
-        const refreshedUser = payload?.user;
+        const { accessToken, user: refreshedUser } = await refreshTokenSingleFlight();
 
         if (accessToken) {
-          setAccessToken(accessToken);
           if (refreshedUser) {
             setUser(refreshedUser);
           } else {
@@ -63,7 +45,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setUser(meRes.data.data.user);
           }
         } else {
-          setAccessToken(null);
           setUser(null);
         }
       } catch (_error) {
