@@ -18,7 +18,7 @@ describe("Readings Module & Business Validation Rules", () => {
         email: `user_a_${Date.now()}@sweety.app`,
         password: "Password123!",
       });
-    userAToken = userARes.body.data.tokens.accessToken;
+    userAToken = userARes.body.data.accessToken;
 
     // Register User B
     const userBRes = await request(app)
@@ -28,7 +28,7 @@ describe("Readings Module & Business Validation Rules", () => {
         email: `user_b_${Date.now()}@sweety.app`,
         password: "Password123!",
       });
-    userBToken = userBRes.body.data.tokens.accessToken;
+    userBToken = userBRes.body.data.accessToken;
   });
 
   it("Rule 1: Rejects when glucose value is omitted with 'Please enter a glucose value.'", async () => {
@@ -178,3 +178,4 @@ describe("Readings Module & Business Validation Rules", () => {
     expect(resBDelete.body.success).toBe(false);
   });
 });
+

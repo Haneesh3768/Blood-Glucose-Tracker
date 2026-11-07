@@ -1,19 +1,26 @@
 import type { PrismaClient, RefreshToken, User } from "@prisma/client";
 import { prisma } from "../../config/database.js";
 
+export interface CreateRefreshTokenData {
+  userId: string;
+  tokenHash: string;
+  familyId: string;
+  expiresAt: Date;
+}
+
 export interface IAuthRepository {
   findUserByEmail(email: string): Promise<User | null>;
   findUserById(id: string): Promise<User | null>;
   createUser(data: { name: string; email: string; passwordHash: string }): Promise<User>;
-  createRefreshToken(data: {
-    userId: string;
-    tokenHash: string;
-    familyId: string;
-    expiresAt: Date;
-  }): Promise<RefreshToken>;
+  createRefreshToken(data: CreateRefreshTokenData): Promise<RefreshToken>;
   findRefreshTokenByHash(tokenHash: string): Promise<(RefreshToken & { user: User }) | null>;
-  revokeRefreshToken(id: string): Promise<RefreshToken>;
-  revokeTokenFamily(familyId: string): Promise<{ count: number }>;
+  revokeRefreshToken(id: string, replacedBy?: string): Promise<RefreshToken>;
+  revokeFamily(familyId: string): Promise<number>;
+  revokeAllUserTokens(userId: string): Promise<number>;
+  rotateTokenAtomic(
+    oldTokenId: string,
+    newToken: CreateRefreshTokenData
+  ): Promise<{ rotated: boolean; createdToken?: RefreshToken }>;
 }
 
 export class AuthRepository implements IAuthRepository {
@@ -41,14 +48,14 @@ export class AuthRepository implements IAuthRepository {
     });
   }
 
-  async createRefreshToken(data: {
-    userId: string;
-    tokenHash: string;
-    familyId: string;
-    expiresAt: Date;
-  }): Promise<RefreshToken> {
+  async createRefreshToken(data: CreateRefreshTokenData): Promise<RefreshToken> {
     return this.db.refreshToken.create({
-      data,
+      data: {
+        userId: data.userId,
+        tokenHash: data.tokenHash,
+        familyId: data.familyId,
+        expiresAt: data.expiresAt,
+      },
     });
   }
 
@@ -59,20 +66,65 @@ export class AuthRepository implements IAuthRepository {
     });
   }
 
-  async revokeRefreshToken(id: string): Promise<RefreshToken> {
+  async revokeRefreshToken(id: string, replacedBy?: string): Promise<RefreshToken> {
     return this.db.refreshToken.update({
       where: { id },
-      data: { isRevoked: true },
+      data: {
+        revokedAt: new Date(),
+        replacedBy,
+      },
     });
   }
 
-  async revokeTokenFamily(familyId: string): Promise<{ count: number }> {
-    return this.db.refreshToken.updateMany({
-      where: { familyId },
-      data: { isRevoked: true },
+  async revokeFamily(familyId: string): Promise<number> {
+    const result = await this.db.refreshToken.updateMany({
+      where: { familyId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+    return result.count;
+  }
+
+  async revokeAllUserTokens(userId: string): Promise<number> {
+    const result = await this.db.refreshToken.updateMany({
+      where: { userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+    return result.count;
+  }
+
+  async rotateTokenAtomic(
+    oldTokenId: string,
+    newToken: CreateRefreshTokenData
+  ): Promise<{ rotated: boolean; createdToken?: RefreshToken }> {
+    return this.db.$transaction(async (tx) => {
+      // Conditional update: only revoke if not already revoked
+      const updateResult = await tx.refreshToken.updateMany({
+        where: {
+          id: oldTokenId,
+          revokedAt: null,
+        },
+        data: {
+          revokedAt: new Date(),
+          replacedBy: newToken.tokenHash,
+        },
+      });
+
+      if (updateResult.count === 0) {
+        return { rotated: false };
+      }
+
+      const created = await tx.refreshToken.create({
+        data: {
+          userId: newToken.userId,
+          tokenHash: newToken.tokenHash,
+          familyId: newToken.familyId,
+          expiresAt: newToken.expiresAt,
+        },
+      });
+
+      return { rotated: true, createdToken: created };
     });
   }
 }
 
 export const authRepository = new AuthRepository();
-

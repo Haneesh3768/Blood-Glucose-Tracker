@@ -43,7 +43,12 @@ export class ReadingsRepository implements IReadingsRepository {
     value: number;
   }): Promise<Reading> {
     return this.db.reading.create({
-      data,
+      data: {
+        userId: data.userId,
+        readingDate: data.readingDate,
+        timeSlot: data.timeSlot,
+        glucoseValue: data.value,
+      },
     });
   }
 
@@ -122,7 +127,11 @@ export class ReadingsRepository implements IReadingsRepository {
   ): Promise<Reading> {
     return this.db.reading.update({
       where: { id },
-      data,
+      data: {
+        readingDate: data.readingDate,
+        timeSlot: data.timeSlot,
+        glucoseValue: data.value,
+      },
     });
   }
 
@@ -134,4 +143,3 @@ export class ReadingsRepository implements IReadingsRepository {
 }
 
 export const readingsRepository = new ReadingsRepository();
-

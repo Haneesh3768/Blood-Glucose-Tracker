@@ -6,11 +6,14 @@ dotenv.config();
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
   PORT: z.coerce.number().default(5000),
-  CLIENT_URL: z.string().url().default("http://localhost:5173"),
+  CLIENT_URL: z.string().default("http://localhost:5173"),
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
   JWT_ACCESS_SECRET: z.string().min(32, "JWT_ACCESS_SECRET must be at least 32 characters long"),
   JWT_ACCESS_EXPIRES_IN: z.string().default("15m"),
+  JWT_ISSUER: z.string().default("sweety-api"),
+  JWT_AUDIENCE: z.string().default("sweety-client"),
   REFRESH_TOKEN_EXPIRES_DAYS: z.coerce.number().int().positive().default(7),
+  REFRESH_COOKIE_NAME: z.string().default("sweety_refresh_token"),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -22,4 +25,3 @@ if (!parsed.success) {
 
 export const env = parsed.data;
 export type Env = z.infer<typeof envSchema>;
-

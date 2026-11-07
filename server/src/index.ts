@@ -6,10 +6,10 @@ import { pool, prisma } from "./config/database.js";
 const app = createApp();
 
 const server = app.listen(env.PORT, () => {
-  logger.info(`🚀 Sweety API server running on port ${env.PORT} in ${env.NODE_ENV} mode`, {
-    port: env.PORT,
-    environment: env.NODE_ENV,
-  });
+  logger.info(
+    { port: env.PORT, environment: env.NODE_ENV },
+    `🚀 Sweety API server running on port ${env.PORT} in ${env.NODE_ENV} mode`
+  );
 });
 
 async function gracefulShutdown(signal: string) {
@@ -23,7 +23,7 @@ async function gracefulShutdown(signal: string) {
       logger.info("Database connections successfully closed.");
       process.exit(0);
     } catch (error) {
-      logger.error("Error during graceful shutdown database disconnect", error as Error);
+      logger.error(error as Error, "Error during graceful shutdown database disconnect");
       process.exit(1);
     }
   });

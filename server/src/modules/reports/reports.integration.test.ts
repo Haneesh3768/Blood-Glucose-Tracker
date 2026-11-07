@@ -17,7 +17,7 @@ describe("Reports Module & Statistical Aggregation Tests", () => {
         email: `reports_${Date.now()}@sweety.app`,
         password: "Password123!",
       });
-    authToken = userRes.body.data.tokens.accessToken;
+    authToken = userRes.body.data.accessToken;
 
     // Seed specific known readings for selectedDate (15 Oct 2026)
     // Values: 90, 135, 142, 128
@@ -97,3 +97,4 @@ describe("Reports Module & Statistical Aggregation Tests", () => {
     expect(report.readings.length).toBe(0);
   });
 });
+

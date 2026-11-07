@@ -26,23 +26,23 @@ export class ReportsRepository implements IReportsRepository {
         },
       },
       _count: {
-        value: true,
+        glucoseValue: true,
       },
       _max: {
-        value: true,
+        glucoseValue: true,
       },
       _min: {
-        value: true,
+        glucoseValue: true,
       },
       _avg: {
-        value: true,
+        glucoseValue: true,
       },
     });
 
-    const count = aggregations._count.value;
-    const highest = aggregations._max.value ?? null;
-    const lowest = aggregations._min.value ?? null;
-    const rawAvg = aggregations._avg.value;
+    const count = aggregations._count.glucoseValue;
+    const highest = aggregations._max.glucoseValue ?? null;
+    const lowest = aggregations._min.glucoseValue ?? null;
+    const rawAvg = aggregations._avg.glucoseValue;
     const average = rawAvg !== null ? Math.round(rawAvg * 10) / 10 : null;
 
     return {

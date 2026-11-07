@@ -39,25 +39,25 @@ async function main() {
         userId: demoUser.id,
         readingDate: dateOnly,
         timeSlot: TimeSlot.MORNING_FASTING,
-        value: 85 + (i % 15),
+        glucoseValue: 85 + (i % 15),
       },
       {
         userId: demoUser.id,
         readingDate: dateOnly,
         timeSlot: TimeSlot.AFTER_BREAKFAST,
-        value: 125 + (i % 25),
+        glucoseValue: 125 + (i % 25),
       },
       {
         userId: demoUser.id,
         readingDate: dateOnly,
         timeSlot: TimeSlot.AFTER_LUNCH,
-        value: 135 + (i % 20),
+        glucoseValue: 135 + (i % 20),
       },
       {
         userId: demoUser.id,
         readingDate: dateOnly,
         timeSlot: TimeSlot.AFTER_DINNER,
-        value: 140 + (i % 30),
+        glucoseValue: 140 + (i % 30),
       }
     );
   }
@@ -71,11 +71,10 @@ async function main() {
 
 main()
   .catch((e) => {
-    logger.error("Seeding error:", e);
+    logger.error(e, "Seeding error");
     process.exit(1);
   })
   .finally(async () => {
     await prisma.$disconnect();
     await pool.end();
   });
-

@@ -12,10 +12,15 @@ export function errorHandler(
 ): void {
   // Operational errors (Application specific)
   if (err instanceof AppError) {
-    logger.warn(`Operational error on ${req.method} ${req.originalUrl}: ${err.message}`, {
-      statusCode: err.statusCode,
-      details: err.details,
-    });
+    logger.warn(
+      {
+        path: req.originalUrl,
+        method: req.method,
+        statusCode: err.statusCode,
+        details: err.details,
+      },
+      `Operational error: ${err.message}`
+    );
 
     const response: ApiErrorResponse = {
       success: false,
@@ -31,10 +36,15 @@ export function errorHandler(
   if (err instanceof ZodError) {
     const firstIssue = err.issues[0];
     const message = firstIssue?.message || "Validation failed";
-    
-    logger.warn(`Zod validation error on ${req.method} ${req.originalUrl}`, {
-      issues: err.issues,
-    });
+
+    logger.warn(
+      {
+        path: req.originalUrl,
+        method: req.method,
+        issues: err.issues,
+      },
+      "Zod request validation failure"
+    );
 
     const response: ApiErrorResponse = {
       success: false,
@@ -48,9 +58,14 @@ export function errorHandler(
 
   // Handle Prisma unique constraint violation fallback (P2002)
   if ("code" in err && err.code === "P2002") {
-    logger.warn(`Prisma unique constraint violation on ${req.method} ${req.originalUrl}`, {
-      error: err.message,
-    });
+    logger.warn(
+      {
+        path: req.originalUrl,
+        method: req.method,
+        prismaCode: err.code,
+      },
+      "Prisma unique constraint violation fallback"
+    );
 
     const response: ApiErrorResponse = {
       success: false,
@@ -62,7 +77,7 @@ export function errorHandler(
   }
 
   // Unhandled internal server errors
-  logger.error(`Unhandled internal error on ${req.method} ${req.originalUrl}`, err);
+  logger.error(err, `Unhandled server error on ${req.method} ${req.originalUrl}`);
 
   const response: ApiErrorResponse = {
     success: false,
@@ -71,4 +86,3 @@ export function errorHandler(
 
   res.status(500).json(response);
 }
-

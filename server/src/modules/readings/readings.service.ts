@@ -39,7 +39,7 @@ export function formatReading(reading: Reading): FormattedReading {
     userId: reading.userId,
     readingDate: formattedDate,
     timeSlot: ENUM_TO_SLOT[reading.timeSlot],
-    value: reading.value,
+    value: reading.glucoseValue,
     createdAt: reading.createdAt.toISOString(),
     updatedAt: reading.updatedAt.toISOString(),
   };

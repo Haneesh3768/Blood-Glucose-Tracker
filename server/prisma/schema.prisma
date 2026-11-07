@@ -14,27 +14,28 @@ enum TimeSlot {
 }
 
 model User {
-  id           String         @id @default(uuid())
-  name         String         @db.VarChar(100)
-  email        String         @unique @db.VarChar(255)
-  passwordHash String         @map("password_hash") @db.VarChar(255)
-  createdAt    DateTime       @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt    DateTime       @updatedAt @map("updated_at") @db.Timestamptz()
-  readings     Reading[]
+  id            String         @id @default(uuid())
+  name          String         @db.VarChar(100)
+  email         String         @unique @db.VarChar(255)
+  passwordHash  String         @map("password_hash") @db.VarChar(255)
+  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt     DateTime       @updatedAt @map("updated_at") @db.Timestamptz()
+  readings      Reading[]
   refreshTokens RefreshToken[]
 
   @@map("users")
 }
 
 model RefreshToken {
-  id        String   @id @default(uuid())
-  tokenHash String   @unique @map("token_hash") @db.VarChar(64)
-  familyId  String   @map("family_id") @db.VarChar(64)
-  isRevoked Boolean  @default(false) @map("is_revoked")
-  expiresAt DateTime @map("expires_at") @db.Timestamptz()
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
-  userId    String   @map("user_id")
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id         String    @id @default(uuid())
+  userId     String    @map("user_id")
+  tokenHash  String    @unique @map("token_hash") @db.VarChar(64)
+  familyId   String    @map("family_id") @db.VarChar(64)
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz()
+  revokedAt  DateTime? @map("revoked_at") @db.Timestamptz()
+  replacedBy String?   @map("replaced_by") @db.VarChar(64)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([familyId])
@@ -42,14 +43,14 @@ model RefreshToken {
 }
 
 model Reading {
-  id          String   @id @default(uuid())
-  userId      String   @map("user_id")
-  readingDate DateTime @map("reading_date") @db.Date
-  timeSlot    TimeSlot @map("time_slot")
-  value       Int      @db.SmallInt
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  readingDate  DateTime @map("reading_date") @db.Date
+  timeSlot     TimeSlot @map("time_slot")
+  glucoseValue Int      @map("glucose_value") @db.SmallInt
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, readingDate, timeSlot], name: "user_date_slot_unique")
   @@index([userId, readingDate(sort: Desc)])

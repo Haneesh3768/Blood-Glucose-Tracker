@@ -19,12 +19,13 @@ CREATE TABLE "users" (
 -- CreateTable
 CREATE TABLE "refresh_tokens" (
     "id" TEXT NOT NULL,
+    "user_id" TEXT NOT NULL,
     "token_hash" VARCHAR(64) NOT NULL,
     "family_id" VARCHAR(64) NOT NULL,
-    "is_revoked" BOOLEAN NOT NULL DEFAULT false,
     "expires_at" TIMESTAMPTZ NOT NULL,
+    "revoked_at" TIMESTAMPTZ,
+    "replaced_by" VARCHAR(64),
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "user_id" TEXT NOT NULL,
 
     CONSTRAINT "refresh_tokens_pkey" PRIMARY KEY ("id")
 );
@@ -35,12 +36,12 @@ CREATE TABLE "readings" (
     "user_id" TEXT NOT NULL,
     "reading_date" DATE NOT NULL,
     "time_slot" "TimeSlot" NOT NULL,
-    "value" SMALLINT NOT NULL,
+    "glucose_value" SMALLINT NOT NULL,
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "readings_pkey" PRIMARY KEY ("id"),
-    CONSTRAINT "chk_glucose_range" CHECK (value >= 40 AND value <= 600)
+    CONSTRAINT "chk_glucose_range" CHECK (glucose_value >= 40 AND glucose_value <= 600)
 );
 
 -- CreateIndex
@@ -66,4 +67,3 @@ ALTER TABLE "refresh_tokens" ADD CONSTRAINT "refresh_tokens_user_id_fkey" FOREIG
 
 -- AddForeignKey
 ALTER TABLE "readings" ADD CONSTRAINT "readings_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-

@@ -22,23 +22,29 @@
     "@prisma/client": "^7.10.1",
     "@prisma/config": "^7.10.1",
     "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "express-rate-limit": "^8.7.3",
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
     "pg": "^8.13.1",
+    "pino": "^10.4.0",
+    "pino-http": "^11.0.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
+    "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
     "@types/jsonwebtoken": "^9.0.7",
     "@types/morgan": "^1.9.9",
     "@types/node": "^22.10.5",
     "@types/pg": "^8.11.10",
+    "@types/pino": "^7.0.4",
     "@types/supertest": "^6.0.2",
     "prisma": "^7.10.1",
     "supertest": "^7.0.0",
@@ -47,4 +53,3 @@
     "vitest": "^3.0.4"
   }
 }
-

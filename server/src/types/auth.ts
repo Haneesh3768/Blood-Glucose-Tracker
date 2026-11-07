@@ -10,14 +10,15 @@ export interface AccessTokenPayload {
   userId: string;
   email: string;
   name: string;
+  iss?: string;
+  aud?: string;
 }
 
-export interface AuthTokens {
+export interface TokenPair {
   accessToken: string;
-  refreshToken: string;
+  rawRefreshToken: string;
 }
 
 export interface AuthenticatedRequest extends Request {
   user?: AuthenticatedUser;
 }
-

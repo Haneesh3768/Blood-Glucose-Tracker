@@ -18,7 +18,11 @@ export function authenticate(
   const token = authHeader.substring(7);
 
   try {
-    const decoded = jwt.verify(token, env.JWT_ACCESS_SECRET) as AccessTokenPayload;
+    const decoded = jwt.verify(token, env.JWT_ACCESS_SECRET, {
+      issuer: env.JWT_ISSUER,
+      audience: env.JWT_AUDIENCE,
+    }) as AccessTokenPayload;
+
     req.user = {
       id: decoded.userId,
       email: decoded.email,
@@ -29,4 +33,3 @@ export function authenticate(
     next(new UnauthorizedError("Invalid or expired session token."));
   }
 }
-

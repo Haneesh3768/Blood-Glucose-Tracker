@@ -1,8 +1,10 @@
 import express, { type Express } from "express";
 import cors, { type CorsOptions } from "cors";
 import helmet from "helmet";
-import morgan from "morgan";
+import cookieParser from "cookie-parser";
+import { pinoHttp } from "pino-http";
 import { env } from "./config/env.js";
+import { logger } from "./config/logger.js";
 import { authRouter } from "./modules/auth/auth.routes.js";
 import { readingsRouter } from "./modules/readings/readings.routes.js";
 import { reportsRouter } from "./modules/reports/reports.routes.js";
@@ -12,14 +14,14 @@ import { NotFoundError } from "./errors/AppError.js";
 export function createApp(): Express {
   const app = express();
 
-  // Configure Helmet with permissive Cross-Origin-Resource-Policy for dev APIs
+  // Helmet with cross-origin policy for modern frontends
   app.use(
     helmet({
       crossOriginResourcePolicy: { policy: "cross-origin" },
     })
   );
 
-  // Robust CORS Configuration
+  // Strict & Secure CORS Configuration
   const corsOptions: CorsOptions = {
     origin: (origin, callback) => {
       // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
@@ -37,11 +39,6 @@ export function createApp(): Express {
         return callback(null, true);
       }
 
-      // Default allow in dev/test to avoid blocking local developer setups
-      if (env.NODE_ENV !== "production") {
-        return callback(null, true);
-      }
-
       callback(new Error(`CORS blocked request from origin: ${origin}`));
     },
     credentials: true,
@@ -53,20 +50,29 @@ export function createApp(): Express {
       "Accept",
       "Origin",
     ],
-    exposedHeaders: ["Authorization"],
+    exposedHeaders: ["Authorization", "Set-Cookie"],
     optionsSuccessStatus: 204,
   };
 
   app.use(cors(corsOptions));
-  // Explicitly handle all preflight OPTIONS requests
   app.options("*", cors(corsOptions));
 
-  // Body parsing
+  // Cookie Parser Middleware
+  app.use(cookieParser());
+
+  // Body Parsing
   app.use(express.json());
 
-  // HTTP Request Logging
+  // Structured Logging via Pino with PII / Credential Redaction
   if (env.NODE_ENV !== "test") {
-    app.use(morgan("dev"));
+    app.use(
+      pinoHttp({
+        logger,
+        autoLogging: {
+          ignore: (req) => req.url === "/health",
+        },
+      })
+    );
   }
 
   // Healthcheck Endpoint
