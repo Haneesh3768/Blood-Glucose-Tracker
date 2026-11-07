@@ -39,11 +39,17 @@ export class AuthController {
       const response: ApiSuccessResponse<{
         user: typeof result.user;
         accessToken: string;
+        tokens: {
+          accessToken: string;
+        };
       }> = {
         success: true,
         data: {
           user: result.user,
           accessToken: result.tokens.accessToken,
+          tokens: {
+            accessToken: result.tokens.accessToken,
+          },
         },
       };
 
@@ -61,11 +67,17 @@ export class AuthController {
       const response: ApiSuccessResponse<{
         user: typeof result.user;
         accessToken: string;
+        tokens: {
+          accessToken: string;
+        };
       }> = {
         success: true,
         data: {
           user: result.user,
           accessToken: result.tokens.accessToken,
+          tokens: {
+            accessToken: result.tokens.accessToken,
+          },
         },
       };
 
@@ -87,10 +99,16 @@ export class AuthController {
 
       const response: ApiSuccessResponse<{
         accessToken: string;
+        tokens: {
+          accessToken: string;
+        };
       }> = {
         success: true,
         data: {
           accessToken: tokens.accessToken,
+          tokens: {
+            accessToken: tokens.accessToken,
+          },
         },
       };
 

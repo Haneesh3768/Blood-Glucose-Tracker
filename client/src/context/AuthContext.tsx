@@ -45,28 +45,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     const response = await apiClient.post<{
       success: boolean;
-      data: { user: User; tokens: { accessToken: string; refreshToken: string } };
+      data: {
+        user: User;
+        accessToken?: string;
+        tokens?: { accessToken: string; refreshToken?: string };
+      };
     }>("/auth/login", { email, password });
 
-    const { user: authedUser, tokens } = response.data.data;
-    localStorage.setItem("sweety_access_token", tokens.accessToken);
-    setToken(tokens.accessToken);
-    setUser(authedUser);
+    const payload = response.data.data;
+    const accessToken = payload.accessToken || payload.tokens?.accessToken;
+    if (accessToken) {
+      localStorage.setItem("sweety_access_token", accessToken);
+      setToken(accessToken);
+    }
+    setUser(payload.user);
   };
 
   const signup = async (name: string, email: string, password: string) => {
     const response = await apiClient.post<{
       success: boolean;
-      data: { user: User; tokens: { accessToken: string; refreshToken: string } };
-    }>("/auth/signup", { name, email, password });
+      data: {
+        user: User;
+        accessToken?: string;
+        tokens?: { accessToken: string; refreshToken?: string };
+      };
+    }>("/auth/register", { name, email, password });
 
-    const { user: authedUser, tokens } = response.data.data;
-    localStorage.setItem("sweety_access_token", tokens.accessToken);
-    setToken(tokens.accessToken);
-    setUser(authedUser);
+    const payload = response.data.data;
+    const accessToken = payload.accessToken || payload.tokens?.accessToken;
+    if (accessToken) {
+      localStorage.setItem("sweety_access_token", accessToken);
+      setToken(accessToken);
+    }
+    setUser(payload.user);
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await apiClient.post("/auth/logout");
+    } catch (_e) {
+      // Ignore network errors on logout
+    }
     localStorage.removeItem("sweety_access_token");
     setToken(null);
     setUser(null);
@@ -86,4 +105,3 @@ export function useAuth(): AuthContextType {
   }
   return context;
 }
-
