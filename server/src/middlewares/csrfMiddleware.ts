@@ -38,3 +38,4 @@ export function verifyCsrfOrigin(req: Request, _res: Response, next: NextFunctio
     return next(new ForbiddenError("CSRF verification failed: Invalid origin format."));
   }
 }
+

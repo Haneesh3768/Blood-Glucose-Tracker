@@ -35,3 +35,4 @@ COPY --from=builder /app/server/prisma.config.ts ./
 EXPOSE 5000
 
 CMD ["node", "dist/src/index.js"]
+
