@@ -45,12 +45,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         const payload = response.data.data;
         const accessToken = payload?.accessToken || payload?.tokens?.accessToken;
+        const refreshedUser = payload?.user;
 
         if (accessToken) {
           setAccessToken(accessToken);
-          // Fetch user profile identity
-          const meRes = await apiClient.get<{ success: boolean; data: { user: User } }>("/auth/me");
-          setUser(meRes.data.data.user);
+          if (refreshedUser) {
+            setUser(refreshedUser);
+          } else {
+            // Fetch user profile identity fallback
+            const meRes = await apiClient.get<{ success: boolean; data: { user: User } }>("/auth/me");
+            setUser(meRes.data.data.user);
+          }
         } else {
           setAccessToken(null);
           setUser(null);

@@ -149,7 +149,8 @@ export const RegisterPage: React.FC = () => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full mt-2 flex items-center justify-center space-x-2 py-2.5 px-4 border border-transparent rounded-xl text-sm font-semibold text-white bg-lavender-600 hover:bg-lavender-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-lavender-500 transition-all shadow-sm shadow-lavender-200 disabled:opacity-60"
+              className="w-full mt-2 flex items-center justify-center space-x-2 py-2.5 px-4 border border-transparent rounded-xl text-sm font-semibold text-white bg-violet-600 hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500 transition-all shadow-sm shadow-violet-200 disabled:opacity-60"
+              style={{ backgroundColor: "#7c3aed", color: "#ffffff" }}
             >
               <span>{isSubmitting ? "Creating account..." : "Register"}</span>
               {!isSubmitting && <ArrowRight className="w-4 h-4" />}

@@ -19,3 +19,4 @@ export const PublicRoute: React.FC<{ children: React.ReactElement }> = ({ childr
 
   return children;
 };
+

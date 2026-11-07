@@ -12,8 +12,8 @@ export class AuthController {
     res.cookie(env.REFRESH_COOKIE_NAME, rawRefreshToken, {
       httpOnly: true,
       secure: env.NODE_ENV === "production",
-      sameSite: "strict",
-      path: "/api/v1/auth",
+      sameSite: "lax",
+      path: "/",
       maxAge: env.REFRESH_TOKEN_EXPIRES_DAYS * 24 * 60 * 60 * 1000,
     });
   }
@@ -22,8 +22,8 @@ export class AuthController {
     res.clearCookie(env.REFRESH_COOKIE_NAME, {
       httpOnly: true,
       secure: env.NODE_ENV === "production",
-      sameSite: "strict",
-      path: "/api/v1/auth",
+      sameSite: "lax",
+      path: "/",
     });
   }
 
@@ -99,6 +99,7 @@ export class AuthController {
 
       const response: ApiSuccessResponse<{
         accessToken: string;
+        user?: typeof tokens.user;
         tokens: {
           accessToken: string;
         };
@@ -106,6 +107,7 @@ export class AuthController {
         success: true,
         data: {
           accessToken: tokens.accessToken,
+          user: tokens.user,
           tokens: {
             accessToken: tokens.accessToken,
           },

@@ -45,7 +45,8 @@ export const EmptyReportState: React.FC<EmptyReportStateProps> = ({
       {handleAction ? (
         <button
           onClick={handleAction}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-lavender-600 hover:bg-lavender-700 text-white font-semibold text-sm shadow-xs transition"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-semibold text-sm shadow-xs transition"
+          style={{ backgroundColor: "#7c3aed", color: "#ffffff" }}
         >
           <Plus className="h-4 w-4" />
           <span>Record a Reading</span>
@@ -53,7 +54,8 @@ export const EmptyReportState: React.FC<EmptyReportStateProps> = ({
       ) : (
         <Link
           to="/readings/new"
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-lavender-600 hover:bg-lavender-700 text-white font-semibold text-sm shadow-xs transition"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-semibold text-sm shadow-xs transition"
+          style={{ backgroundColor: "#7c3aed", color: "#ffffff" }}
         >
           <Plus className="h-4 w-4" />
           <span>Record a Reading</span>

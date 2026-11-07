@@ -84,7 +84,8 @@ export const DailyReportPage: React.FC = () => {
 
           <Link
             to={`/readings/new?date=${selectedDate}`}
-            className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-lavender-600 hover:bg-lavender-700 text-white text-xs font-semibold shadow-xs transition"
+            className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-xs font-semibold shadow-xs transition"
+            style={{ backgroundColor: "#7c3aed", color: "#ffffff" }}
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Add Reading</span>
@@ -218,3 +219,4 @@ export const DailyReportPage: React.FC = () => {
     </div>
   );
 };
+

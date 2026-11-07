@@ -171,7 +171,8 @@ export const DashboardPage: React.FC = () => {
 
           <button
             onClick={() => handleOpenAdd()}
-            className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-lavender-600 hover:bg-lavender-700 text-white text-xs font-semibold shadow-xs transition"
+            className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-xs font-semibold shadow-xs transition"
+            style={{ backgroundColor: "#7c3aed", color: "#ffffff" }}
           >
             <Plus className="w-4 h-4" />
             <span>Record Reading</span>
@@ -311,7 +312,8 @@ export const DashboardPage: React.FC = () => {
             </p>
             <button
               onClick={() => handleOpenAdd()}
-              className="mt-4 px-4 py-2 rounded-xl bg-lavender-600 hover:bg-lavender-700 text-white text-xs font-semibold transition"
+              className="mt-4 px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-xs font-semibold transition"
+              style={{ backgroundColor: "#7c3aed", color: "#ffffff" }}
             >
               Record First Reading
             </button>
@@ -345,3 +347,4 @@ export const DashboardPage: React.FC = () => {
     </div>
   );
 };
+

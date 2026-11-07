@@ -8,3 +8,37 @@
   }
 }
 
+/* Bulletproof primary button & lavender palette fallbacks */
+.bg-lavender-50 { background-color: #faf8ff; }
+.bg-lavender-100 { background-color: #f3effe; }
+.bg-lavender-200 { background-color: #e9e2fd; }
+.bg-lavender-500 { background-color: #8b5cf6; }
+.bg-lavender-600 { background-color: #7c3aed !important; }
+.bg-lavender-700 { background-color: #6d28d9 !important; }
+
+.hover\:bg-lavender-700:hover { background-color: #6d28d9 !important; }
+.hover\:bg-lavender-100:hover { background-color: #f3effe !important; }
+
+.text-lavender-500 { color: #8b5cf6; }
+.text-lavender-600 { color: #7c3aed; }
+.text-lavender-700 { color: #6d28d9; }
+.text-lavender-800 { color: #5b21b6; }
+.text-lavender-900 { color: #4c1d95; }
+
+.border-lavender-100 { border-color: #f3effe; }
+.border-lavender-200 { border-color: #e9e2fd; }
+
+/* Ensure primary CTA and submit buttons always render with white text on vibrant purple */
+.btn-primary,
+button.bg-lavender-600,
+button.bg-violet-600 {
+  background-color: #7c3aed !important;
+  color: #ffffff !important;
+}
+
+button.bg-lavender-600:hover,
+button.bg-violet-600:hover {
+  background-color: #6d28d9 !important;
+}
+
+

@@ -214,7 +214,8 @@ export const ReadingModal: React.FC<ReadingModalProps> = ({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-5 py-2.5 rounded-xl bg-lavender-600 hover:bg-lavender-700 text-white font-semibold text-sm shadow-sm transition disabled:opacity-50"
+              className="px-5 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-semibold text-sm shadow-sm transition disabled:opacity-50"
+              style={{ backgroundColor: "#7c3aed", color: "#ffffff" }}
             >
               {isSubmitting
                 ? "Saving..."

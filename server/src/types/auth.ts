@@ -17,6 +17,7 @@ export interface AccessTokenPayload {
 export interface TokenPair {
   accessToken: string;
   rawRefreshToken: string;
+  user?: AuthenticatedUser;
 }
 
 export interface AuthenticatedRequest extends Request {

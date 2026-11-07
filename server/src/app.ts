@@ -36,9 +36,30 @@ function getOpenApiSpec(): Record<string, unknown> | null {
 export function createApp(): Express {
   const app = express();
 
-  // Helmet with cross-origin policy for modern frontends
+  // Helmet with cross-origin policy for modern frontends and Swagger UI support
   app.use(
     helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: [
+            "'self'",
+            "'unsafe-inline'",
+            "https://cdn.jsdelivr.net",
+          ],
+          styleSrc: [
+            "'self'",
+            "'unsafe-inline'",
+            "https://cdn.jsdelivr.net",
+          ],
+          imgSrc: [
+            "'self'",
+            "data:",
+            "https://validator.swagger.io",
+          ],
+          connectSrc: ["'self'", "*"],
+        },
+      },
       crossOriginResourcePolicy: { policy: "cross-origin" },
     })
   );
@@ -116,7 +137,7 @@ export function createApp(): Express {
     }
   });
 
-  app.get("/api/docs", (_req, res) => {
+  app.get(["/api/docs", "/api/docs/"], (_req, res) => {
     res.setHeader("Content-Type", "text/html");
     res.status(200).send(`<!DOCTYPE html>
 <html>

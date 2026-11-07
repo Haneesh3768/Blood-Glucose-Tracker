@@ -211,6 +211,7 @@ export class AuthService {
     return {
       accessToken,
       rawRefreshToken: newRawRefreshToken,
+      user,
     };
   }
 

@@ -221,7 +221,8 @@ export const AddReadingPage: React.FC = () => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-lavender-600 hover:bg-lavender-700 text-white text-sm font-semibold shadow-sm transition disabled:opacity-50"
+              className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold shadow-sm transition disabled:opacity-50"
+              style={{ backgroundColor: "#7c3aed", color: "#ffffff" }}
             >
               <Check className="w-4 h-4" />
               <span>{isSubmitting ? "Saving..." : "Save Reading"}</span>
