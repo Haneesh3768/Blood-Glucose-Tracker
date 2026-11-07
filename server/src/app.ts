@@ -7,6 +7,7 @@ import cookieParser from "cookie-parser";
 import { pinoHttp } from "pino-http";
 import { env } from "./config/env.js";
 import { logger } from "./config/logger.js";
+import { apiRateLimiter } from "./middlewares/rateLimiter.js";
 import { authRouter } from "./modules/auth/auth.routes.js";
 import { readingsRouter } from "./modules/readings/readings.routes.js";
 import { reportsRouter } from "./modules/reports/reports.routes.js";
@@ -103,8 +104,8 @@ export function createApp(): Express {
   // Cookie Parser Middleware
   app.use(cookieParser());
 
-  // Body Parsing
-  app.use(express.json());
+  // Body Parsing with constrained payload size limit (mitigates payload flood / DoS)
+  app.use(express.json({ limit: "15kb" }));
 
   // Structured Logging via Pino with PII / Credential Redaction
   if (env.NODE_ENV !== "test") {
@@ -168,6 +169,7 @@ export function createApp(): Express {
   });
 
   // Modular API v1 Routes
+  app.use("/api/v1", apiRateLimiter);
   app.use("/api/v1/auth", authRouter);
   app.use("/api/v1/readings", readingsRouter);
   app.use("/api/v1/reports", reportsRouter);

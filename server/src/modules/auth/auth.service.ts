@@ -56,6 +56,7 @@ export class AuthService {
     };
 
     return jwt.sign(payload, env.JWT_ACCESS_SECRET, {
+      algorithm: "HS256",
       expiresIn: env.JWT_ACCESS_EXPIRES_IN as jwt.SignOptions["expiresIn"],
       issuer: env.JWT_ISSUER,
       audience: env.JWT_AUDIENCE,

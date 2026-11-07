@@ -23,3 +23,14 @@ export const refreshRateLimiter = rateLimit({
   },
 });
 
+export const apiRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: env.NODE_ENV === "test" ? 5000 : 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: "Too many requests. Please slow down.",
+  },
+});
+

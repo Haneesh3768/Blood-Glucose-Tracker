@@ -12,7 +12,8 @@ const registerSchema = z.object({
   password: z
     .string()
     .min(1, "Password is required")
-    .min(8, "Password must be at least 8 characters long"),
+    .min(8, "Password must be at least 8 characters long")
+    .max(72, "Password cannot exceed 72 characters"),
 });
 
 type RegisterFormData = z.infer<typeof registerSchema>;

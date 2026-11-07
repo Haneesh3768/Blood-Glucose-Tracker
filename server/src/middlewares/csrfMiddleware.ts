@@ -10,8 +10,11 @@ export function verifyCsrfOrigin(req: Request, _res: Response, next: NextFunctio
 
   const origin = req.headers.origin || req.headers.referer;
 
-  // In test or non-browser environments without origin headers, allow
+  // In production, mutating requests MUST have an Origin or Referer header
   if (!origin) {
+    if (env.NODE_ENV === "production") {
+      return next(new ForbiddenError("CSRF verification failed: Missing origin header."));
+    }
     return next();
   }
 

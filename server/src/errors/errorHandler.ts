@@ -76,6 +76,27 @@ export function errorHandler(
     return;
   }
 
+  // Handle standard HTTP client errors from body-parser or middleware (e.g. 413 PayloadTooLarge, 400 SyntaxError)
+  const clientStatus = (err as any).statusCode || (err as any).status;
+  if (typeof clientStatus === "number" && clientStatus >= 400 && clientStatus < 500) {
+    logger.warn(
+      {
+        path: req.originalUrl,
+        method: req.method,
+        statusCode: clientStatus,
+      },
+      `Client HTTP error: ${err.message}`
+    );
+
+    const response: ApiErrorResponse = {
+      success: false,
+      error: clientStatus === 413 ? "Request payload exceeds allowed limit." : err.message,
+    };
+
+    res.status(clientStatus).json(response);
+    return;
+  }
+
   // Unhandled internal server errors
   logger.error(err, `Unhandled server error on ${req.method} ${req.originalUrl}`);
 

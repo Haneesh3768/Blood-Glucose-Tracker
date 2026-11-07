@@ -17,6 +17,10 @@ export function setAccessToken(token: string | null): void {
   listeners.forEach((listener) => listener(token));
 }
 
+export function clearAccessToken(): void {
+  setAccessToken(null);
+}
+
 export function subscribeToTokenChange(listener: TokenListener): () => void {
   listeners.push(listener);
   return () => {

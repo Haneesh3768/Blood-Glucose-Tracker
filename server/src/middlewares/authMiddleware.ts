@@ -19,6 +19,7 @@ export function authenticate(
 
   try {
     const decoded = jwt.verify(token, env.JWT_ACCESS_SECRET, {
+      algorithms: ["HS256"],
       issuer: env.JWT_ISSUER,
       audience: env.JWT_AUDIENCE,
     }) as AccessTokenPayload;

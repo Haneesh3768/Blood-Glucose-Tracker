@@ -7,7 +7,10 @@ export const registerSchema = z.object({
     .trim()
     .toLowerCase()
     .email("Please provide a valid email address."),
-  password: z.string().min(8, "Password must be at least 8 characters long."),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters long.")
+    .max(72, "Password cannot exceed 72 characters."),
 });
 
 export const loginSchema = z.object({
@@ -16,7 +19,10 @@ export const loginSchema = z.object({
     .trim()
     .toLowerCase()
     .email("Please provide a valid email address."),
-  password: z.string().min(1, "Password is required."),
+  password: z
+    .string()
+    .min(1, "Password is required.")
+    .max(72, "Password cannot exceed 72 characters."),
 });
 
 export const refreshTokenSchema = z.object({
