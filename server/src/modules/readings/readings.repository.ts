@@ -15,9 +15,10 @@ export interface IReadingsRepository {
     userId: string;
     readingDate: Date;
     timeSlot: TimeSlot;
-    value: number;
+    glucoseValue: number;
   }): Promise<Reading>;
   findReadingById(id: string): Promise<Reading | null>;
+  findReadingByIdAndUser(id: string, userId: string): Promise<Reading | null>;
   findReadingByUserAndSlot(
     userId: string,
     readingDate: Date,
@@ -28,7 +29,7 @@ export interface IReadingsRepository {
   countReadings(options: Omit<FindReadingsOptions, "skip" | "take">): Promise<number>;
   updateReading(
     id: string,
-    data: { readingDate: Date; timeSlot: TimeSlot; value: number }
+    data: { readingDate?: Date; timeSlot?: TimeSlot; glucoseValue?: number }
   ): Promise<Reading>;
   deleteReading(id: string): Promise<Reading>;
 }
@@ -40,14 +41,14 @@ export class ReadingsRepository implements IReadingsRepository {
     userId: string;
     readingDate: Date;
     timeSlot: TimeSlot;
-    value: number;
+    glucoseValue: number;
   }): Promise<Reading> {
     return this.db.reading.create({
       data: {
         userId: data.userId,
         readingDate: data.readingDate,
         timeSlot: data.timeSlot,
-        glucoseValue: data.value,
+        glucoseValue: data.glucoseValue,
       },
     });
   }
@@ -55,6 +56,15 @@ export class ReadingsRepository implements IReadingsRepository {
   async findReadingById(id: string): Promise<Reading | null> {
     return this.db.reading.findUnique({
       where: { id },
+    });
+  }
+
+  async findReadingByIdAndUser(id: string, userId: string): Promise<Reading | null> {
+    return this.db.reading.findFirst({
+      where: {
+        id,
+        userId,
+      },
     });
   }
 
@@ -123,14 +133,14 @@ export class ReadingsRepository implements IReadingsRepository {
 
   async updateReading(
     id: string,
-    data: { readingDate: Date; timeSlot: TimeSlot; value: number }
+    data: { readingDate?: Date; timeSlot?: TimeSlot; glucoseValue?: number }
   ): Promise<Reading> {
     return this.db.reading.update({
       where: { id },
       data: {
-        readingDate: data.readingDate,
-        timeSlot: data.timeSlot,
-        glucoseValue: data.value,
+        ...(data.readingDate ? { readingDate: data.readingDate } : {}),
+        ...(data.timeSlot ? { timeSlot: data.timeSlot } : {}),
+        ...(data.glucoseValue !== undefined ? { glucoseValue: data.glucoseValue } : {}),
       },
     });
   }

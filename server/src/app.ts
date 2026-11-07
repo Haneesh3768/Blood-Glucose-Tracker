@@ -1,3 +1,5 @@
+import fs from "fs";
+import path from "path";
 import express, { type Express } from "express";
 import cors, { type CorsOptions } from "cors";
 import helmet from "helmet";
@@ -10,6 +12,26 @@ import { readingsRouter } from "./modules/readings/readings.routes.js";
 import { reportsRouter } from "./modules/reports/reports.routes.js";
 import { errorHandler } from "./errors/errorHandler.js";
 import { NotFoundError } from "./errors/AppError.js";
+
+function getOpenApiSpec(): Record<string, unknown> | null {
+  const candidates = [
+    path.resolve(process.cwd(), "src/docs/openapi.json"),
+    path.resolve(process.cwd(), "server/src/docs/openapi.json"),
+    path.resolve(process.cwd(), "dist/src/docs/openapi.json"),
+    path.resolve(process.cwd(), "dist/docs/openapi.json"),
+  ];
+
+  for (const p of candidates) {
+    if (fs.existsSync(p)) {
+      try {
+        return JSON.parse(fs.readFileSync(p, "utf-8"));
+      } catch {
+        // continue
+      }
+    }
+  }
+  return null;
+}
 
 export function createApp(): Express {
   const app = express();
@@ -82,6 +104,46 @@ export function createApp(): Express {
       uptime: process.uptime(),
       timestamp: new Date().toISOString(),
     });
+  });
+
+  // Swagger / OpenAPI Interactive Documentation
+  app.get("/api/docs/openapi.json", (_req, res) => {
+    const spec = getOpenApiSpec();
+    if (spec) {
+      res.status(200).json(spec);
+    } else {
+      res.status(404).json({ error: "Documentation specification not found." });
+    }
+  });
+
+  app.get("/api/docs", (_req, res) => {
+    res.setHeader("Content-Type", "text/html");
+    res.status(200).send(`<!DOCTYPE html>
+<html>
+  <head>
+    <title>Sweety API Documentation</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css" />
+  </head>
+  <body>
+    <div id="swagger-ui"></div>
+    <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+    <script>
+      window.onload = () => {
+        window.ui = SwaggerUIBundle({
+          url: '/api/docs/openapi.json',
+          dom_id: '#swagger-ui',
+          deepLinking: true,
+          presets: [
+            SwaggerUIBundle.presets.apis,
+            SwaggerUIBundle.SwaggerUIStandalonePreset
+          ],
+        });
+      };
+    </script>
+  </body>
+</html>`);
   });
 
   // Modular API v1 Routes

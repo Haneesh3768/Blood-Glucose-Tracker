@@ -98,11 +98,19 @@ export class AuthService {
     // Hash password with bcrypt cost 12
     const passwordHash = await bcrypt.hash(input.password, 12);
 
-    const createdUser = await this.repository.createUser({
-      name: input.name.trim(),
-      email: normalizedEmail,
-      passwordHash,
-    });
+    let createdUser;
+    try {
+      createdUser = await this.repository.createUser({
+        name: input.name.trim(),
+        email: normalizedEmail,
+        passwordHash,
+      });
+    } catch (err: any) {
+      if (err?.code === "P2002" || err?.message?.includes("users_email_key")) {
+        throw new ConflictError("An account with this email address already exists.");
+      }
+      throw err;
+    }
 
     const user: AuthenticatedUser = {
       id: createdUser.id,

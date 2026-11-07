@@ -168,6 +168,83 @@ npm run test --workspace=client
 
 ---
 
+## 📖 API Reference & Interactive Documentation
+
+Sweety provides interactive Swagger UI documentation directly on the running backend:
+- **Interactive Swagger UI**: [http://localhost:5000/api/docs](http://localhost:5000/api/docs)
+- **OpenAPI 3.0.3 Specification**: [http://localhost:5000/api/docs/openapi.json](http://localhost:5000/api/docs/openapi.json)
+
+### Authentication Endpoints (`/api/v1/auth`)
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| `POST` | `/api/v1/auth/register` | None | Register new patient account with bcrypt cost 12 |
+| `POST` | `/api/v1/auth/login` | None | Authenticate patient; issues access token + HTTP-only refresh cookie |
+| `POST` | `/api/v1/auth/refresh` | Cookie | Atomic refresh token rotation with session family tracking |
+| `POST` | `/api/v1/auth/logout` | Cookie | Revoke current session refresh token and clear cookie |
+| `POST` | `/api/v1/auth/logout-all` | Bearer | Revoke all session families across all devices for patient |
+| `GET` | `/api/v1/auth/me` | Bearer | Get authenticated user profile identity |
+
+### Readings Management Endpoints (`/api/v1/readings`) – Phase 2
+
+All reading endpoints require `Authorization: Bearer <jwt_access_token>`. Multi-tenant authorization ensures patients can only query, modify, or delete their own clinical data. Accessing another user's reading returns `404 Not Found` to prevent enumeration.
+
+| Method | Endpoint | Description | Status Codes |
+|---|---|---|---|
+| `POST` | `/api/v1/readings` | Create reading (max 4/day, 1 per slot/day) | `201`, `400`, `401`, `409` |
+| `GET` | `/api/v1/readings?page=1&limit=20` | Paginated list of readings | `200`, `400`, `401` |
+| `GET` | `/api/v1/readings/:id` | Get specific reading by UUID | `200`, `401`, `404` |
+| `PATCH` | `/api/v1/readings/:id` | Partial update (`glucoseValue`, `timeSlot`, `readingDate`) | `200`, `400`, `401`, `404`, `409` |
+| `DELETE` | `/api/v1/readings/:id` | Delete specific reading | `200`, `401`, `404` |
+
+#### Reading Request Payload (`POST /api/v1/readings`)
+```json
+{
+  "readingDate": "2026-10-15",
+  "timeSlot": "Morning (fasting)",
+  "glucoseValue": 95
+}
+```
+> Supported timeSlot inputs: Canonical strings (`"Morning (fasting)"`, `"After breakfast"`, `"After lunch"`, `"After dinner"`) or uppercase enum identifiers (`"MORNING"`, `"MORNING_FASTING"`, `"AFTER_BREAKFAST"`, `"AFTER_LUNCH"`, `"AFTER_DINNER"`). Field `value` is also accepted as an alias for `glucoseValue`.
+
+#### Reading Success Response (`201 Created` / `200 OK`)
+```json
+{
+  "success": true,
+  "message": "Reading created successfully.",
+  "data": {
+    "reading": {
+      "id": "7b82ef45-8bc3-4819-bf9d-f286821d3f9b",
+      "userId": "d1e2f3a4-5678-90ab-cdef-1234567890ab",
+      "readingDate": "2026-10-15",
+      "timeSlot": "Morning (fasting)",
+      "glucoseValue": 95,
+      "value": 95,
+      "createdAt": "2026-10-15T08:00:00.000Z",
+      "updatedAt": "2026-10-15T08:00:00.000Z"
+    }
+  }
+}
+```
+
+#### Paginated Readings Response (`GET /api/v1/readings?page=1&limit=20`)
+```json
+{
+  "success": true,
+  "data": {
+    "readings": [ ... ]
+  },
+  "meta": {
+    "total": 38,
+    "page": 1,
+    "limit": 20,
+    "totalPages": 2
+  }
+}
+```
+
+---
+
 ## 🛡️ Business Validation Rules Matrix
 
 The application strictly implements and tests the following 5 business rules:

@@ -39,4 +39,19 @@ describe("Application Health & Core Gateway", () => {
     expect(res.body.success).toBe(false);
     expect(res.body.error).toBe("API endpoint not found.");
   });
+
+  it("serves OpenAPI specification JSON at GET /api/docs/openapi.json", async () => {
+    const res = await request(app).get("/api/docs/openapi.json");
+    expect(res.status).toBe(200);
+    expect(res.body.openapi).toBe("3.0.3");
+    expect(res.body.info.title).toContain("Sweety");
+    expect(res.body.paths).toHaveProperty("/api/v1/readings");
+  });
+
+  it("serves interactive Swagger UI HTML at GET /api/docs", async () => {
+    const res = await request(app).get("/api/docs");
+    expect(res.status).toBe(200);
+    expect(res.headers["content-type"]).toContain("text/html");
+    expect(res.text).toContain("SwaggerUIBundle");
+  });
 });

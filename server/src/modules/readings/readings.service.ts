@@ -1,8 +1,18 @@
 import { TimeSlot, type Reading } from "@prisma/client";
-import { ConflictError, ForbiddenError, NotFoundError } from "../../errors/AppError.js";
+import {
+  BadRequestError,
+  ConflictError,
+  NotFoundError,
+} from "../../errors/AppError.js";
 import type { IReadingsRepository } from "./readings.repository.js";
 import { readingsRepository } from "./readings.repository.js";
-import type { CreateReadingInput, GetReadingsQuery, TimeSlotType, UpdateReadingInput } from "./readings.validator.js";
+import type {
+  CreateReadingInput,
+  GetReadingsQuery,
+  PatchReadingInput,
+  TimeSlotType,
+  UpdateReadingInput,
+} from "./readings.validator.js";
 
 export const SLOT_TO_ENUM: Record<TimeSlotType, TimeSlot> = {
   "Morning (fasting)": TimeSlot.MORNING_FASTING,
@@ -23,15 +33,16 @@ export interface FormattedReading {
   userId: string;
   readingDate: string; // YYYY-MM-DD
   timeSlot: TimeSlotType;
-  value: number;
+  glucoseValue: number;
+  value: number; // backward compatibility alias
   createdAt: string;
   updatedAt: string;
 }
 
 export function formatReading(reading: Reading): FormattedReading {
-  const year = reading.readingDate.getFullYear();
-  const month = String(reading.readingDate.getMonth() + 1).padStart(2, "0");
-  const day = String(reading.readingDate.getDate()).padStart(2, "0");
+  const year = reading.readingDate.getUTCFullYear();
+  const month = String(reading.readingDate.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(reading.readingDate.getUTCDate()).padStart(2, "0");
   const formattedDate = `${year}-${month}-${day}`;
 
   return {
@@ -39,6 +50,7 @@ export function formatReading(reading: Reading): FormattedReading {
     userId: reading.userId,
     readingDate: formattedDate,
     timeSlot: ENUM_TO_SLOT[reading.timeSlot],
+    glucoseValue: reading.glucoseValue,
     value: reading.glucoseValue,
     createdAt: reading.createdAt.toISOString(),
     updatedAt: reading.updatedAt.toISOString(),
@@ -56,31 +68,42 @@ export class ReadingsService {
   async createReading(userId: string, input: CreateReadingInput): Promise<FormattedReading> {
     const targetDate = parseDateString(input.readingDate);
     const targetSlot = SLOT_TO_ENUM[input.timeSlot];
+    const displaySlot = input.timeSlot;
 
-    // Rule 1: Check if slot already exists for this date and user
+    // Rule 4: Check maximum 4 readings per day limit first
+    const existingCount = await this.repository.countUserReadingsByDate(userId, targetDate);
+    if (existingCount >= 4) {
+      throw new BadRequestError("You can add only 4 readings per day.");
+    }
+
+    // Rule 3: Check if slot already exists for this date and user
     const existingSlotReading = await this.repository.findReadingByUserAndSlot(
       userId,
       targetDate,
       targetSlot
     );
     if (existingSlotReading) {
-      throw new ConflictError(`You already have an ${input.timeSlot} reading for this date.`);
+      throw new ConflictError(`You already have an ${displaySlot} reading for this date.`);
     }
 
-    // Rule 2: Check maximum 4 readings per day limit
-    const existingCount = await this.repository.countUserReadingsByDate(userId, targetDate);
-    if (existingCount >= 4) {
-      throw new ConflictError("You can add only 4 readings per day.");
+    const valueToSave = input.glucoseValue !== undefined ? input.glucoseValue : input.value;
+
+    try {
+      const created = await this.repository.createReading({
+        userId,
+        readingDate: targetDate,
+        timeSlot: targetSlot,
+        glucoseValue: valueToSave,
+      });
+
+      return formatReading(created);
+    } catch (err: any) {
+      // Catch concurrent unique constraint race condition
+      if (err?.code === "P2002" || err?.message?.includes("user_date_slot_unique")) {
+        throw new ConflictError(`You already have an ${displaySlot} reading for this date.`);
+      }
+      throw err;
     }
-
-    const created = await this.repository.createReading({
-      userId,
-      readingDate: targetDate,
-      timeSlot: targetSlot,
-      value: input.value,
-    });
-
-    return formatReading(created);
   }
 
   async getReadings(
@@ -95,8 +118,8 @@ export class ReadingsService {
       totalPages: number;
     };
   }> {
-    const page = query.page;
-    const limit = query.limit;
+    const page = Math.max(1, query.page || 1);
+    const limit = Math.min(100, Math.max(1, query.limit || 20));
     const skip = (page - 1) * limit;
 
     const startDate = query.startDate ? parseDateString(query.startDate) : undefined;
@@ -132,13 +155,9 @@ export class ReadingsService {
   }
 
   async getReadingById(userId: string, id: string): Promise<FormattedReading> {
-    const reading = await this.repository.findReadingById(id);
+    const reading = await this.repository.findReadingByIdAndUser(id, userId);
     if (!reading) {
       throw new NotFoundError("Reading not found.");
-    }
-
-    if (reading.userId !== userId) {
-      throw new ForbiddenError("You do not have access to this reading.");
     }
 
     return formatReading(reading);
@@ -147,47 +166,70 @@ export class ReadingsService {
   async updateReading(
     userId: string,
     id: string,
-    input: UpdateReadingInput
+    input: PatchReadingInput | UpdateReadingInput
   ): Promise<FormattedReading> {
-    const existing = await this.repository.findReadingById(id);
+    const existing = await this.repository.findReadingByIdAndUser(id, userId);
     if (!existing) {
       throw new NotFoundError("Reading not found.");
     }
 
-    if (existing.userId !== userId) {
-      throw new ForbiddenError("You do not have access to modify this reading.");
+    const targetDate = input.readingDate
+      ? parseDateString(input.readingDate)
+      : existing.readingDate;
+
+    const targetSlot = input.timeSlot
+      ? SLOT_TO_ENUM[input.timeSlot]
+      : existing.timeSlot;
+
+    const displaySlot = input.timeSlot ?? ENUM_TO_SLOT[existing.timeSlot];
+
+    const hasValue = input.glucoseValue !== undefined || input.value !== undefined;
+    const targetValue = hasValue
+      ? (input.glucoseValue !== undefined ? input.glucoseValue : input.value)!
+      : existing.glucoseValue;
+
+    // If date or slot is modified, ensure no collision with another reading of the user
+    const dateChanged = targetDate.getTime() !== existing.readingDate.getTime();
+    const slotChanged = targetSlot !== existing.timeSlot;
+
+    if (dateChanged || slotChanged) {
+      const collision = await this.repository.findReadingByUserAndSlot(
+        userId,
+        targetDate,
+        targetSlot
+      );
+      if (collision && collision.id !== id) {
+        throw new ConflictError(`You already have an ${displaySlot} reading for this date.`);
+      }
+
+      if (dateChanged) {
+        const countOnNewDate = await this.repository.countUserReadingsByDate(userId, targetDate);
+        if (countOnNewDate >= 4) {
+          throw new BadRequestError("You can add only 4 readings per day.");
+        }
+      }
     }
 
-    const targetDate = parseDateString(input.readingDate);
-    const targetSlot = SLOT_TO_ENUM[input.timeSlot];
+    try {
+      const updated = await this.repository.updateReading(id, {
+        readingDate: targetDate,
+        timeSlot: targetSlot,
+        glucoseValue: targetValue,
+      });
 
-    // Check collision on another reading with the same slot and date
-    const collision = await this.repository.findReadingByUserAndSlot(
-      userId,
-      targetDate,
-      targetSlot
-    );
-    if (collision && collision.id !== id) {
-      throw new ConflictError(`You already have an ${input.timeSlot} reading for this date.`);
+      return formatReading(updated);
+    } catch (err: any) {
+      if (err?.code === "P2002" || err?.message?.includes("user_date_slot_unique")) {
+        throw new ConflictError(`You already have an ${displaySlot} reading for this date.`);
+      }
+      throw err;
     }
-
-    const updated = await this.repository.updateReading(id, {
-      readingDate: targetDate,
-      timeSlot: targetSlot,
-      value: input.value,
-    });
-
-    return formatReading(updated);
   }
 
   async deleteReading(userId: string, id: string): Promise<{ id: string }> {
-    const existing = await this.repository.findReadingById(id);
+    const existing = await this.repository.findReadingByIdAndUser(id, userId);
     if (!existing) {
       throw new NotFoundError("Reading not found.");
-    }
-
-    if (existing.userId !== userId) {
-      throw new ForbiddenError("You do not have access to delete this reading.");
     }
 
     await this.repository.deleteReading(id);
@@ -196,4 +238,3 @@ export class ReadingsService {
 }
 
 export const readingsService = new ReadingsService();
-
