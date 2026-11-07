@@ -140,6 +140,39 @@
           "totalPages": { "type": "integer", "example": 2 }
         }
       },
+      "ReportStats": {
+        "type": "object",
+        "properties": {
+          "highest": { "type": "number", "nullable": true, "example": 142 },
+          "lowest": { "type": "number", "nullable": true, "example": 90 },
+          "average": { "type": "number", "nullable": true, "example": 123.8 },
+          "count": { "type": "integer", "example": 4 },
+          "totalReadings": { "type": "integer", "example": 4 }
+        },
+        "required": ["highest", "lowest", "average", "count", "totalReadings"]
+      },
+      "ReportResult": {
+        "type": "object",
+        "properties": {
+          "reportType": { "type": "string", "enum": ["daily", "month-to-date", "monthly"] },
+          "selectedDate": { "type": "string", "format": "date", "example": "2026-10-15" },
+          "dateRange": {
+            "type": "object",
+            "properties": {
+              "startDate": { "type": "string", "format": "date", "example": "2026-10-15" },
+              "endDate": { "type": "string", "format": "date", "example": "2026-10-15" }
+            },
+            "required": ["startDate", "endDate"]
+          },
+          "stats": { "$ref": "#/components/schemas/ReportStats" },
+          "readings": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Reading" }
+          },
+          "isEmpty": { "type": "boolean", "example": false }
+        },
+        "required": ["reportType", "selectedDate", "dateRange", "stats", "readings", "isEmpty"]
+      },
       "ApiError": {
         "type": "object",
         "properties": {
@@ -475,6 +508,123 @@
         }
       }
     },
+    "/api/v1/reports/daily": {
+      "get": {
+        "summary": "Get Daily Glucose Report for a calendar date",
+        "tags": ["Reports"],
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "format": "date", "example": "2026-10-15" },
+            "description": "Selected calendar date (YYYY-MM-DD). Defaults to today in UTC."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Daily statistical metrics and detailed slot breakdown.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "report": { "$ref": "#/components/schemas/ReportResult" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Invalid date format." },
+          "401": { "description": "Unauthorized." }
+        }
+      }
+    },
+    "/api/v1/reports/month-to-date": {
+      "get": {
+        "summary": "Get Month-to-Date (MTD) Glucose Report",
+        "tags": ["Reports"],
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "format": "date", "example": "2026-10-15" },
+            "description": "Selected end date (YYYY-MM-DD). Scope runs from 1st of month to this date."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "MTD statistical aggregations.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "report": { "$ref": "#/components/schemas/ReportResult" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Invalid date format." },
+          "401": { "description": "Unauthorized." }
+        }
+      }
+    },
+    "/api/v1/reports/monthly": {
+      "get": {
+        "summary": "Get Monthly Report for the entire previous calendar month",
+        "tags": ["Reports"],
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "format": "date", "example": "2026-10-15" },
+            "description": "Selected anchor date (YYYY-MM-DD). Report aggregates the entire previous calendar month."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Monthly report metrics for the full previous month.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "report": { "$ref": "#/components/schemas/ReportResult" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Invalid date format." },
+          "401": { "description": "Unauthorized." }
+        }
+      }
+    },
     "/api/v1/reports/summary": {
       "get": {
         "summary": "Get statistical glucose report (Daily, MTD, Monthly)",
@@ -503,3 +653,4 @@
     }
   }
 }
+

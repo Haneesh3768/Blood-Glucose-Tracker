@@ -1,7 +1,11 @@
-import type { IReportsRepository } from "./reports.repository.js";
+import type { IReportsRepository, AggregateStats } from "./reports.repository.js";
 import { reportsRepository } from "./reports.repository.js";
 import type { GetReportQuery, ReportType } from "./reports.validator.js";
-import { formatReading, parseDateString, type FormattedReading } from "../readings/readings.service.js";
+import {
+  formatReading,
+  parseDateString,
+  type FormattedReading,
+} from "../readings/readings.service.js";
 
 export interface ReportResult {
   reportType: ReportType;
@@ -10,67 +14,113 @@ export interface ReportResult {
     startDate: string;
     endDate: string;
   };
-  stats: {
-    highest: number | null;
-    lowest: number | null;
-    average: number | null;
-    count: number;
-  };
-  readings?: FormattedReading[];
+  stats: AggregateStats;
+  readings: FormattedReading[];
   isEmpty: boolean;
+}
+
+export function calculateDateRange(
+  type: ReportType,
+  selectedDateStr: string
+): {
+  startDate: Date;
+  endDate: Date;
+  startDateStr: string;
+  endDateStr: string;
+} {
+  const [yearStr, monthStr, dayStr] = selectedDateStr.split("-");
+  const year = Number(yearStr);
+  const month = Number(monthStr); // 1-12
+  const day = Number(dayStr);
+
+  if (type === "daily") {
+    const targetDate = parseDateString(selectedDateStr);
+    return {
+      startDate: targetDate,
+      endDate: targetDate,
+      startDateStr: selectedDateStr,
+      endDateStr: selectedDateStr,
+    };
+  }
+
+  if (type === "month-to-date") {
+    // 1st of current month to selected date
+    const startDate = new Date(Date.UTC(year, month - 1, 1));
+    const endDate = new Date(Date.UTC(year, month - 1, day));
+    const startDateStr = `${year}-${String(month).padStart(2, "0")}-01`;
+    return {
+      startDate,
+      endDate,
+      startDateStr,
+      endDateStr: selectedDateStr,
+    };
+  }
+
+  // Monthly: The whole previous calendar month relative to selected date
+  let prevYear = year;
+  let prevMonth = month - 1; // 1-12
+  if (prevMonth === 0) {
+    prevMonth = 12;
+    prevYear = year - 1;
+  }
+
+  const startDate = new Date(Date.UTC(prevYear, prevMonth - 1, 1));
+  // Day 0 of next month in UTC gives the exact last calendar day of prevMonth
+  // This deterministically handles 28, 29, 30, and 31 day months and leap years
+  const lastDayDate = new Date(Date.UTC(prevYear, prevMonth, 0));
+  const lastDay = lastDayDate.getUTCDate();
+  const endDate = new Date(Date.UTC(prevYear, prevMonth - 1, lastDay));
+
+  const startDateStr = `${prevYear}-${String(prevMonth).padStart(2, "0")}-01`;
+  const endDateStr = `${prevYear}-${String(prevMonth).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+
+  return {
+    startDate,
+    endDate,
+    startDateStr,
+    endDateStr,
+  };
 }
 
 export class ReportsService {
   constructor(private readonly repository: IReportsRepository = reportsRepository) {}
 
-  private formatDateString(d: Date): string {
-    const year = d.getUTCFullYear();
-    const month = String(d.getUTCMonth() + 1).padStart(2, "0");
-    const day = String(d.getUTCDate()).padStart(2, "0");
+  private getTodayDateString(): string {
+    const now = new Date();
+    const year = now.getUTCFullYear();
+    const month = String(now.getUTCMonth() + 1).padStart(2, "0");
+    const day = String(now.getUTCDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
   }
 
-  private calculateDateRange(type: ReportType, selectedDateStr: string): { startDate: Date; endDate: Date } {
-    const [yearStr, monthStr, dayStr] = selectedDateStr.split("-");
-    const year = Number(yearStr);
-    const month = Number(monthStr); // 1-12
-    const day = Number(dayStr);
+  private normalizeReportType(type: string): ReportType {
+    if (type === "mtd" || type === "month-to-date") return "month-to-date";
+    if (type === "monthly") return "monthly";
+    return "daily";
+  }
 
-    if (type === "daily") {
-      const targetDate = parseDateString(selectedDateStr);
-      return { startDate: targetDate, endDate: targetDate };
-    }
+  async getDailyReport(userId: string, dateStr?: string): Promise<ReportResult> {
+    return this.generateReport(userId, { type: "daily", date: dateStr });
+  }
 
-    if (type === "mtd") {
-      // 1st of the month to selected date
-      const startDate = new Date(Date.UTC(year, month - 1, 1));
-      const endDate = new Date(Date.UTC(year, month - 1, day));
-      return { startDate, endDate };
-    }
+  async getMonthToDateReport(userId: string, dateStr?: string): Promise<ReportResult> {
+    return this.generateReport(userId, { type: "month-to-date", date: dateStr });
+  }
 
-    // Monthly: The whole previous month
-    // E.g. if selected date is 15 Oct 2026, whole previous month is 1 Sep - 30 Sep 2026
-    const prevMonthDate = new Date(Date.UTC(year, month - 2, 1));
-    const prevYear = prevMonthDate.getUTCFullYear();
-    const prevMonth = prevMonthDate.getUTCMonth(); // 0-indexed
-
-    const startDate = new Date(Date.UTC(prevYear, prevMonth, 1));
-    // Day 0 of next month is last day of prevMonth
-    const lastDayOfMonth = new Date(Date.UTC(prevYear, prevMonth + 1, 0)).getUTCDate();
-    const endDate = new Date(Date.UTC(prevYear, prevMonth, lastDayOfMonth));
-
-    return { startDate, endDate };
+  async getMonthlyReport(userId: string, dateStr?: string): Promise<ReportResult> {
+    return this.generateReport(userId, { type: "monthly", date: dateStr });
   }
 
   async generateReport(userId: string, query: GetReportQuery): Promise<ReportResult> {
-    const today = new Date();
-    const defaultDateStr = this.formatDateString(
-      new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()))
+    const selectedDateStr = query.date || this.getTodayDateString();
+    const normalizedType = this.normalizeReportType(query.type);
+
+    const { startDate, endDate, startDateStr, endDateStr } = calculateDateRange(
+      normalizedType,
+      selectedDateStr
     );
-    const selectedDateStr = query.date || defaultDateStr;
 
-    const { startDate, endDate } = this.calculateDateRange(query.type, selectedDateStr);
-
+    // Run aggregations and readings queries in parallel scoped strictly to authenticated userId
     const [stats, records] = await Promise.all([
       this.repository.getAggregateStats(userId, startDate, endDate),
       this.repository.findReadingsInRange(userId, startDate, endDate),
@@ -80,11 +130,11 @@ export class ReportsService {
     const isEmpty = stats.count === 0;
 
     return {
-      reportType: query.type,
+      reportType: normalizedType,
       selectedDate: selectedDateStr,
       dateRange: {
-        startDate: this.formatDateString(startDate),
-        endDate: this.formatDateString(endDate),
+        startDate: startDateStr,
+        endDate: endDateStr,
       },
       stats,
       readings: formattedReadings,
@@ -94,4 +144,3 @@ export class ReportsService {
 }
 
 export const reportsService = new ReportsService();
-

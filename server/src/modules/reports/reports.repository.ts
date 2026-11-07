@@ -3,6 +3,7 @@ import { prisma } from "../../config/database.js";
 
 export interface AggregateStats {
   count: number;
+  totalReadings: number;
   highest: number | null;
   lowest: number | null;
   average: number | null;
@@ -40,13 +41,14 @@ export class ReportsRepository implements IReportsRepository {
     });
 
     const count = aggregations._count.glucoseValue;
-    const highest = aggregations._max.glucoseValue ?? null;
-    const lowest = aggregations._min.glucoseValue ?? null;
+    const highest = count > 0 ? (aggregations._max.glucoseValue ?? null) : null;
+    const lowest = count > 0 ? (aggregations._min.glucoseValue ?? null) : null;
     const rawAvg = aggregations._avg.glucoseValue;
-    const average = rawAvg !== null ? Math.round(rawAvg * 10) / 10 : null;
+    const average = count > 0 && rawAvg !== null ? Math.round(rawAvg * 10) / 10 : null;
 
     return {
       count,
+      totalReadings: count,
       highest,
       lowest,
       average,
@@ -68,4 +70,3 @@ export class ReportsRepository implements IReportsRepository {
 }
 
 export const reportsRepository = new ReportsRepository();
-

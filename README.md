@@ -197,6 +197,80 @@ All reading endpoints require `Authorization: Bearer <jwt_access_token>`. Multi-
 | `PATCH` | `/api/v1/readings/:id` | Partial update (`glucoseValue`, `timeSlot`, `readingDate`) | `200`, `400`, `401`, `404`, `409` |
 | `DELETE` | `/api/v1/readings/:id` | Delete specific reading | `200`, `401`, `404` |
 
+### Glucose Reporting & Analytics Endpoints (`/api/v1/reports`) – Phase 3
+
+All report endpoints require `Authorization: Bearer <jwt_access_token>`. Statistics are calculated over individual underlying readings (never by averaging daily averages).
+
+| Method | Endpoint | Description | Status Codes |
+|---|---|---|---|
+| `GET` | `/api/v1/reports/daily?date=YYYY-MM-DD` | Aggregated metrics for calendar date + full slot details | `200`, `400`, `401` |
+| `GET` | `/api/v1/reports/month-to-date?date=YYYY-MM-DD` | Aggregated metrics from 1st of month to selected date | `200`, `400`, `401` |
+| `GET` | `/api/v1/reports/monthly?date=YYYY-MM-DD` | Aggregated metrics for entire previous calendar month | `200`, `400`, `401` |
+| `GET` | `/api/v1/reports/summary?type=daily\|mtd\|monthly&date=YYYY-MM-DD` | Backward-compatible unified report endpoint | `200`, `400`, `401` |
+
+#### Daily Report Response Example (`GET /api/v1/reports/daily?date=2026-10-15`)
+```json
+{
+  "success": true,
+  "data": {
+    "report": {
+      "reportType": "daily",
+      "selectedDate": "2026-10-15",
+      "dateRange": {
+        "startDate": "2026-10-15",
+        "endDate": "2026-10-15"
+      },
+      "stats": {
+        "highest": 142,
+        "lowest": 90,
+        "average": 123.8,
+        "count": 4,
+        "totalReadings": 4
+      },
+      "readings": [
+        {
+          "id": "7b82ef45-8bc3-4819-bf9d-f286821d3f9b",
+          "userId": "d1e2f3a4-5678-90ab-cdef-1234567890ab",
+          "readingDate": "2026-10-15",
+          "timeSlot": "Morning (fasting)",
+          "glucoseValue": 90,
+          "value": 90,
+          "createdAt": "2026-10-15T07:30:00.000Z",
+          "updatedAt": "2026-10-15T07:30:00.000Z"
+        }
+      ],
+      "isEmpty": false
+    }
+  }
+}
+```
+
+#### Empty State Report Response Example
+```json
+{
+  "success": true,
+  "data": {
+    "report": {
+      "reportType": "daily",
+      "selectedDate": "2025-01-01",
+      "dateRange": {
+        "startDate": "2025-01-01",
+        "endDate": "2025-01-01"
+      },
+      "stats": {
+        "highest": null,
+        "lowest": null,
+        "average": null,
+        "count": 0,
+        "totalReadings": 0
+      },
+      "readings": [],
+      "isEmpty": true
+    }
+  }
+}
+```
+
 #### Reading Request Payload (`POST /api/v1/readings`)
 ```json
 {
