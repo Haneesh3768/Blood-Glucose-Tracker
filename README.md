@@ -6,8 +6,19 @@ It is built as a modular TypeScript monolith using **Node.js, Express, Prisma, a
 
 ---
 
+## 📺 Video Walkthrough & Demo
+
+Watch the end-to-end product demo and live walkthrough:
+
+[![Watch Sweety Demo on Loom](https://img.shields.io/badge/Loom_Demo-Watch_Video_Walkthrough-blueviolet?style=for-the-badge&logo=loom)](https://www.loom.com/share/d134d51a11994164a15becc061fb302a)
+
+👉 **[Watch the Sweety Demo Video on Loom](https://www.loom.com/share/d134d51a11994164a15becc061fb302a)**
+
+---
+
 ## Table of Contents
 
+- [Video Walkthrough & Demo](#-video-walkthrough--demo)
 - [What Sweety Does](#what-sweety-does)
 - [System Architecture](#system-architecture)
 - [Tech Stack](#tech-stack)
