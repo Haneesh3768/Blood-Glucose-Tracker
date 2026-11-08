@@ -24,9 +24,15 @@ export class ReadingsController {
   list = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       const result = await this.service.getReadings(req.user!.id, req.query as any);
-      const response: ApiSuccessResponse<{ readings: FormattedReading[] }> = {
+      const response: ApiSuccessResponse<{
+        readings: FormattedReading[];
+        pagination: typeof result.pagination;
+      }> = {
         success: true,
-        data: { readings: result.readings },
+        data: {
+          readings: result.readings,
+          pagination: result.pagination,
+        },
         meta: result.pagination,
       };
       res.status(200).json(response);

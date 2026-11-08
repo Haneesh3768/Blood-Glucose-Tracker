@@ -16,6 +16,7 @@ import { fetchReadings, deleteReading } from "../api/readingsApi.js";
 import { fetchDailyReport } from "../api/reportsApi.js";
 import { DailyTimeline } from "../components/dashboard/DailyTimeline.js";
 import { GlycemicTrendChart } from "../components/reports/GlycemicTrendChart.js";
+import { ReadingsHistory } from "../components/readings/ReadingsHistory.js";
 import { ReadingModal } from "../components/readings/ReadingModal.js";
 import { DeleteConfirmModal } from "../components/readings/DeleteConfirmModal.js";
 import { getTodayDateString, formatDisplayDate } from "../utils/glucose.js";
@@ -68,6 +69,7 @@ export const DashboardPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ["dailyReport"] });
       queryClient.invalidateQueries({ queryKey: ["monthlyTrend"] });
       queryClient.invalidateQueries({ queryKey: ["readings"] });
+      queryClient.invalidateQueries({ queryKey: ["readingsHistory"] });
       setIsDeleteModalOpen(false);
       setDeletingReading(null);
     },
@@ -116,6 +118,7 @@ export const DashboardPage: React.FC = () => {
     queryClient.invalidateQueries({ queryKey: ["dailyReport"] });
     queryClient.invalidateQueries({ queryKey: ["monthlyTrend"] });
     queryClient.invalidateQueries({ queryKey: ["readings"] });
+    queryClient.invalidateQueries({ queryKey: ["readingsHistory"] });
   };
 
   const stats = dailyReport?.stats;
@@ -322,6 +325,12 @@ export const DashboardPage: React.FC = () => {
           <GlycemicTrendChart readings={trendReadings} />
         )}
       </div>
+
+      {/* Paginated Readings History Logbook */}
+      <ReadingsHistory
+        onEditReading={handleOpenEdit}
+        onDeleteReading={handleOpenDelete}
+      />
 
       {/* Modals */}
       <ReadingModal

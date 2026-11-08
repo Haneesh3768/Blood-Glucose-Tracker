@@ -134,11 +134,14 @@
       "PaginationMeta": {
         "type": "object",
         "properties": {
+          "total": { "type": "integer", "example": 38 },
           "page": { "type": "integer", "example": 1 },
           "limit": { "type": "integer", "example": 20 },
-          "total": { "type": "integer", "example": 38 },
-          "totalPages": { "type": "integer", "example": 2 }
-        }
+          "totalPages": { "type": "integer", "example": 2 },
+          "hasNextPage": { "type": "boolean", "example": true },
+          "hasPreviousPage": { "type": "boolean", "example": false }
+        },
+        "required": ["total", "page", "limit", "totalPages", "hasNextPage", "hasPreviousPage"]
       },
       "ReportStats": {
         "type": "object",
@@ -367,7 +370,8 @@
                         "readings": {
                           "type": "array",
                           "items": { "$ref": "#/components/schemas/Reading" }
-                        }
+                        },
+                        "pagination": { "$ref": "#/components/schemas/PaginationMeta" }
                       }
                     },
                     "meta": { "$ref": "#/components/schemas/PaginationMeta" }

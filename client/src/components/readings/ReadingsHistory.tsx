@@ -15,7 +15,7 @@ export const ReadingsHistory: React.FC<ReadingsHistoryProps> = ({
   onDeleteReading,
 }) => {
   const [page, setPage] = useState(1);
-  const limit = 10;
+  const limit = 20;
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["readingsHistory", page, limit],
@@ -121,16 +121,18 @@ export const ReadingsHistory: React.FC<ReadingsHistoryProps> = ({
         <div className="flex items-center gap-2">
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page <= 1 || isLoading}
+            disabled={(meta?.hasPreviousPage !== undefined ? !meta.hasPreviousPage : page <= 1) || isLoading}
             className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+            aria-label="Previous page"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
           <span className="px-2 font-bold text-slate-800">{page}</span>
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page >= totalPages || isLoading}
+            disabled={(meta?.hasNextPage !== undefined ? !meta.hasNextPage : page >= totalPages) || isLoading}
             className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+            aria-label="Next page"
           >
             <ChevronRight className="h-4 w-4" />
           </button>

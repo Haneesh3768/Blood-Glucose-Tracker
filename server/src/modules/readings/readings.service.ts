@@ -62,6 +62,20 @@ export function parseDateString(dateStr: string): Date {
   return new Date(Date.UTC(Number(yearStr), Number(monthStr) - 1, Number(dayStr)));
 }
 
+export interface PaginationResult {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
+export interface GetReadingsResult {
+  readings: FormattedReading[];
+  pagination: PaginationResult;
+}
+
 export class ReadingsService {
   constructor(private readonly repository: IReadingsRepository = readingsRepository) {}
 
@@ -109,17 +123,9 @@ export class ReadingsService {
   async getReadings(
     userId: string,
     query: GetReadingsQuery
-  ): Promise<{
-    readings: FormattedReading[];
-    pagination: {
-      page: number;
-      limit: number;
-      total: number;
-      totalPages: number;
-    };
-  }> {
-    const page = Math.max(1, query.page || 1);
-    const limit = Math.min(100, Math.max(1, query.limit || 20));
+  ): Promise<GetReadingsResult> {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
     const skip = (page - 1) * limit;
 
     const startDate = query.startDate ? parseDateString(query.startDate) : undefined;
@@ -143,13 +149,19 @@ export class ReadingsService {
       }),
     ]);
 
+    const totalPages = total === 0 ? 0 : Math.ceil(total / limit);
+    const hasNextPage = page < totalPages;
+    const hasPreviousPage = page > 1 && totalPages > 0;
+
     return {
       readings: records.map(formatReading),
       pagination: {
+        total,
         page,
         limit,
-        total,
-        totalPages: Math.ceil(total / limit) || 1,
+        totalPages,
+        hasNextPage,
+        hasPreviousPage,
       },
     };
   }

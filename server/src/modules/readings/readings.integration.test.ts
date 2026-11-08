@@ -379,62 +379,189 @@ describe("Readings Module & Business Validation Rules (Phase 2)", () => {
     });
   });
 
-  describe("Pagination & Limit Enforcement", () => {
-    beforeAll(async () => {
-      // Seed 3 readings for User B on paginationDate
-      await request(app)
-        .post("/api/v1/readings")
-        .set("Authorization", `Bearer ${userBToken}`)
-        .send({ readingDate: paginationDate, timeSlot: "After lunch", glucoseValue: 120 });
+  describe("Server-Side Pagination & Limit Enforcement", () => {
+    let pUserToken: string;
+    let pUserId: string;
+    let isolatedUserToken: string;
 
-      await request(app)
-        .post("/api/v1/readings")
-        .set("Authorization", `Bearer ${userBToken}`)
-        .send({ readingDate: paginationDate, timeSlot: "After dinner", glucoseValue: 130 });
+    beforeAll(async () => {
+      // Register dedicated pagination test user
+      const pUserEmail = `pagination-${Date.now()}@example.com`;
+      const pUserRes = await request(app)
+        .post("/api/v1/auth/register")
+        .send({ name: "Pagination User", email: pUserEmail, password: "SecurePassword123!" });
+      pUserToken = pUserRes.body.data.accessToken;
+      pUserId = pUserRes.body.data.user.id;
+
+      // Register isolated user to verify cross-user isolation
+      const isoEmail = `isolated-${Date.now()}@example.com`;
+      const isoRes = await request(app)
+        .post("/api/v1/auth/register")
+        .send({ name: "Isolated User", email: isoEmail, password: "SecurePassword123!" });
+      isolatedUserToken = isoRes.body.data.accessToken;
     });
 
-    it("Returns correct pagination metadata with limit and page", async () => {
+    it("Returns empty results with total=0, totalPages=0, hasNextPage=false, hasPreviousPage=false", async () => {
       const res = await request(app)
-        .get(`/api/v1/readings?page=1&limit=2`)
-        .set("Authorization", `Bearer ${userBToken}`);
+        .get("/api/v1/readings")
+        .set("Authorization", `Bearer ${pUserToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.readings).toEqual([]);
+      expect(res.body.meta).toEqual({
+        total: 0,
+        page: 1,
+        limit: 20,
+        totalPages: 0,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      });
+      expect(res.body.data.pagination).toEqual(res.body.meta);
+    });
+
+    it("Seeds test readings for pagination verification", async () => {
+      const seedDates = [
+        "2026-07-01",
+        "2026-07-02",
+        "2026-07-03",
+        "2026-07-04",
+        "2026-07-05",
+      ];
+      for (let i = 0; i < seedDates.length; i++) {
+        const createRes = await request(app)
+          .post("/api/v1/readings")
+          .set("Authorization", `Bearer ${pUserToken}`)
+          .send({
+            readingDate: seedDates[i],
+            timeSlot: "Morning (fasting)",
+            glucoseValue: 100 + i * 5,
+          });
+        expect(createRes.status).toBe(201);
+      }
+    });
+
+    it("Returns first page with hasNextPage=true, hasPreviousPage=false and deterministic sort", async () => {
+      const res = await request(app)
+        .get("/api/v1/readings?page=1&limit=2")
+        .set("Authorization", `Bearer ${pUserToken}`);
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
       expect(res.body.data.readings.length).toBe(2);
-      expect(res.body.meta).toBeDefined();
-      expect(res.body.meta.page).toBe(1);
-      expect(res.body.meta.limit).toBe(2);
-      expect(res.body.meta.total).toBeGreaterThanOrEqual(3);
-      expect(res.body.meta.totalPages).toBeGreaterThanOrEqual(2);
+      expect(res.body.meta).toEqual({
+        total: 5,
+        page: 1,
+        limit: 2,
+        totalPages: 3,
+        hasNextPage: true,
+        hasPreviousPage: false,
+      });
+      // Sorted by readingDate descending: 2026-07-05, then 2026-07-04
+      expect(res.body.data.readings[0].readingDate).toBe("2026-07-05");
+      expect(res.body.data.readings[1].readingDate).toBe("2026-07-04");
     });
 
-    it("Returns page 2 cleanly", async () => {
+    it("Returns middle page with hasNextPage=true and hasPreviousPage=true", async () => {
       const res = await request(app)
-        .get(`/api/v1/readings?page=2&limit=2`)
-        .set("Authorization", `Bearer ${userBToken}`);
+        .get("/api/v1/readings?page=2&limit=2")
+        .set("Authorization", `Bearer ${pUserToken}`);
 
       expect(res.status).toBe(200);
-      expect(res.body.data.readings.length).toBeGreaterThanOrEqual(1);
-      expect(res.body.meta.page).toBe(2);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.readings.length).toBe(2);
+      expect(res.body.meta).toEqual({
+        total: 5,
+        page: 2,
+        limit: 2,
+        totalPages: 3,
+        hasNextPage: true,
+        hasPreviousPage: true,
+      });
+      expect(res.body.data.readings[0].readingDate).toBe("2026-07-03");
+      expect(res.body.data.readings[1].readingDate).toBe("2026-07-02");
     });
 
-    it("Rejects non-positive page with 400", async () => {
+    it("Returns last page with hasNextPage=false and hasPreviousPage=true", async () => {
       const res = await request(app)
-        .get(`/api/v1/readings?page=0&limit=10`)
-        .set("Authorization", `Bearer ${userBToken}`);
+        .get("/api/v1/readings?page=3&limit=2")
+        .set("Authorization", `Bearer ${pUserToken}`);
 
-      expect(res.status).toBe(400);
-      expect(res.body.success).toBe(false);
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.readings.length).toBe(1);
+      expect(res.body.meta).toEqual({
+        total: 5,
+        page: 3,
+        limit: 2,
+        totalPages: 3,
+        hasNextPage: false,
+        hasPreviousPage: true,
+      });
+      expect(res.body.data.readings[0].readingDate).toBe("2026-07-01");
     });
 
-    it("Rejects limit > 100 with 400", async () => {
-      const res = await request(app)
-        .get(`/api/v1/readings?page=1&limit=150`)
-        .set("Authorization", `Bearer ${userBToken}`);
+    it("Rejects invalid page parameters (page=0, page=-1, page=abc, page=1.5) with 400", async () => {
+      const invalidPages = ["0", "-1", "abc", "1.5"];
+      for (const page of invalidPages) {
+        const res = await request(app)
+          .get(`/api/v1/readings?page=${page}&limit=10`)
+          .set("Authorization", `Bearer ${pUserToken}`);
 
-      expect(res.status).toBe(400);
-      expect(res.body.success).toBe(false);
-      expect(res.body.error).toContain("Limit cannot exceed 100.");
+        expect(res.status).toBe(400);
+        expect(res.body.success).toBe(false);
+      }
+    });
+
+    it("Rejects invalid limit parameters (limit=0, limit=-5, limit=101, limit=xyz) with 400", async () => {
+      const invalidLimits = ["0", "-5", "101", "xyz", "2.5"];
+      for (const limit of invalidLimits) {
+        const res = await request(app)
+          .get(`/api/v1/readings?page=1&limit=${limit}`)
+          .set("Authorization", `Bearer ${pUserToken}`);
+
+        expect(res.status).toBe(400);
+        expect(res.body.success).toBe(false);
+      }
+    });
+
+    it("Supports maximum limit (limit=100) returning all user records in a single page", async () => {
+      const res = await request(app)
+        .get("/api/v1/readings?page=1&limit=100")
+        .set("Authorization", `Bearer ${pUserToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.readings.length).toBe(5);
+      expect(res.body.meta).toEqual({
+        total: 5,
+        page: 1,
+        limit: 100,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      });
+    });
+
+    it("Enforces strict cross-user isolation: User B cannot see User A's readings or total count", async () => {
+      // Isolated user queries readings
+      const res = await request(app)
+        .get("/api/v1/readings?page=1&limit=20")
+        .set("Authorization", `Bearer ${isolatedUserToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.readings).toEqual([]);
+      expect(res.body.meta.total).toBe(0);
+      expect(res.body.meta.totalPages).toBe(0);
+
+      // Attempt query parameter injection / IDOR
+      const maliciousRes = await request(app)
+        .get(`/api/v1/readings?page=1&limit=20&userId=${pUserId}`)
+        .set("Authorization", `Bearer ${isolatedUserToken}`);
+
+      expect(maliciousRes.status).toBe(200);
+      expect(maliciousRes.body.data.readings).toEqual([]);
+      expect(maliciousRes.body.meta.total).toBe(0);
     });
   });
 

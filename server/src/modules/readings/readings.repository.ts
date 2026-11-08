@@ -111,7 +111,7 @@ export class ReadingsRepository implements IReadingsRepository {
       where,
       skip,
       take,
-      orderBy: [{ readingDate: "desc" }, { createdAt: "desc" }],
+      orderBy: [{ readingDate: "desc" }, { createdAt: "desc" }, { id: "desc" }],
     });
   }
 
