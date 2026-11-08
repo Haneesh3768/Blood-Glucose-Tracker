@@ -45,7 +45,7 @@ jobs:
           DATABASE_URL: postgresql://sweety_test_user:sweety_test_password@localhost:5432/sweety_test_db?schema=public
 
       - name: Deploy Prisma Database Migrations
-        run: npx prisma migrate deploy --workspace=server
+        run: npm run prisma:migrate
         env:
           DATABASE_URL: postgresql://sweety_test_user:sweety_test_password@localhost:5432/sweety_test_db?schema=public
 
