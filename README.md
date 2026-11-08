@@ -293,7 +293,7 @@ sequenceDiagram
 ### 1. Clone & Install
 ```bash
 git clone <repository-url>
-cd sweety
+cd Blood-Glucose-Tracker
 npm install
 ```
 
